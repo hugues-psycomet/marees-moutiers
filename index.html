@@ -161,6 +161,12 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .dbaig.no{color:var(--ink-2); font-weight:600}
 .dbaig .dep{color:var(--baignade); font-weight:800}
 .dbaig svg{width:1rem;height:1rem;color:var(--baignade)}
+.dslots{margin-top:0.6rem; display:flex; flex-direction:column; gap:0.35rem}
+.dslot{display:flex; align-items:baseline; justify-content:space-between; gap:0.7rem; font-size:0.84rem; font-variant-numeric:tabular-nums; padding-left:0.55rem; border-left:3px solid var(--ac)}
+.dslot .dtime{font-weight:750; color:var(--ink)}
+.dslot .dmeta{color:var(--ink-2); text-align:right; white-space:nowrap}
+.dnone{margin-top:0.6rem; font-size:0.8rem; font-weight:600; color:var(--ink-2); display:flex; align-items:center; gap:0.4rem}
+.dnone svg{width:1rem;height:1rem; opacity:.7}
 .tdintro{font-size:0.83rem; color:var(--ink-2); margin:0 0 0.75rem; line-height:1.5}
 
 /* webcam */
@@ -321,12 +327,6 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
     <div class="windupd" id="windUpd"></div>
   </section>
 
-  <!-- WINDOWS -->
-  <section class="card">
-    <h2 id="winTitle">Prochains créneaux</h2>
-    <div class="wlist" id="wlist"></div>
-  </section>
-
   <!-- SETTINGS -->
   <section class="card">
     <details class="set">
@@ -383,8 +383,13 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
   <div id="view-tendays" hidden>
     <section class="card" style="padding-bottom:0.4rem">
       <h2 class="big">Les 10 prochains jours</h2>
-      <p class="tdintro">Coefficients, pleines et basses mers, et créneaux de baignade au fil des jours. Un gros coefficient (vive-eau) = grande marée : mer très basse à marée basse, très haute à marée haute.</p>
+      <p class="tdintro">Coefficients, pleines et basses mers, et <b id="tdActLine">créneaux</b> au fil des jours. Un gros coefficient (vive-eau) = grande marée : mer très basse à marée basse, très haute à marée haute.</p>
     </section>
+    <div class="seg" role="radiogroup" aria-label="Choisir l'activité" id="segTen">
+      <button role="radio" class="a-baignade" data-act="baignade" aria-selected="true"><span class="ic" data-icon="umbrella"></span>Baignade</button>
+      <button role="radio" class="a-voile" data-act="voile" aria-selected="false"><span class="ic" data-icon="sail"></span>Voile</button>
+      <button role="radio" class="a-planche" data-act="planche" aria-selected="false"><span class="ic" data-icon="windsurf"></span>Planche</button>
+    </div>
     <div id="tendays"></div>
     <footer>Coefficients &amp; horaires : prévisions calées sur les données officielles SHOM. Coefficient estimé (le coefficient officiel est défini à Brest). Au-delà de 7 jours, le vent n'est pas encore prévu.</footer>
   </div>
@@ -502,9 +507,9 @@ function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEa
 // ---------- config + persistence ----------
 const DEF = { travelMin:10, baignade:{hmin:3.2}, voile:{hmin:3.8, wmin:8, wmax:28}, planche:{hmin:3.5, wmin:15, wmax:45} };
 const META = {
-  baignade:{label:'Baignade', icon:'umbrella', color:'var(--baignade)', wind:false, go:'Maillots, serviettes — en route', gearNow:'À l\'eau !', name:'la baignade'},
-  voile:{label:'Voile — bateau · Laser · 420', icon:'sail', color:'var(--voile)', wind:true, go:'Larguez les amarres', gearNow:'Cap sur l\'eau !', name:'la voile'},
-  planche:{label:'Planche à voile', icon:'windsurf', color:'var(--planche)', wind:true, go:'Gréez la voile', gearNow:'Ça va planer !', name:'la planche'},
+  baignade:{label:'Baignade', short:'Baignade', icon:'umbrella', color:'var(--baignade)', wind:false, go:'Maillots, serviettes — en route', gearNow:'À l\'eau !', name:'la baignade'},
+  voile:{label:'Voile — bateau · Laser · 420', short:'Voile', icon:'sail', color:'var(--voile)', wind:true, go:'Larguez les amarres', gearNow:'Cap sur l\'eau !', name:'la voile'},
+  planche:{label:'Planche à voile', short:'Planche', icon:'windsurf', color:'var(--planche)', wind:true, go:'Gréez la voile', gearNow:'Ça va planer !', name:'la planche'},
 };
 let cfg = JSON.parse(JSON.stringify(DEF));
 const LS='moutiers-cfg-v1';
@@ -739,29 +744,6 @@ function renderActs(){
   }
 }
 
-// ---------- render: windows list ----------
-function renderWindows(){
-  const act=currentAct, m=META[act], now=Date.now();
-  document.getElementById('winTitle').textContent=`Créneaux ${m.name} · ${m.wind?'7':'10'} jours`;
-  const box=document.getElementById('wlist'); box.innerHTML='';
-  if(!inRange(now)){ box.innerHTML='<div class="empty">Table de marées expirée.</div>'; return; }
-  const wins=windows(act, now, now+(m.wind?7:10)*864e5);
-  if(!wins.length){ box.innerHTML='<div class="empty">Aucun créneau favorable avec les seuils actuels. Ajustez-les dans les réglages.</div>'; return; }
-  let lastDay='';
-  for(const w of wins){
-    const dk=dayKey(w.start);
-    if(dk!==lastDay){ lastDay=dk; const d=document.createElement('div'); d.className='wday'; d.textContent=cap(fmtDay.format(new Date(w.start))); box.appendChild(d); }
-    const it=document.createElement('div'); it.className='witem';
-    const dep=hmFr(round5(w.start-cfg.travelMin*60000));
-    let meta=`départ ${dep} · jusqu'à ${mM(w.hmax)}`;
-    let pill='';
-    if(m.wind){ if(!w.windKnown) pill=`<span class="pill" style="color:var(--warn)">vent&nbsp;?</span>`;
-      else if(w.wmax>-1e9) pill=`<span class="pill">${Math.round(w.wmin)}–${Math.round(w.wmax)} km/h</span>`; }
-    it.innerHTML=`<span class="rng">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="meta">${meta}</span>${pill}`;
-    box.appendChild(it);
-  }
-}
-
 // ---------- render: chart ----------
 function renderChart(){
   const svg=document.getElementById('chart'); if(!svg) return;
@@ -810,14 +792,17 @@ function attachHover(svg,X,t0,t1){
   svg.onpointermove=move; svg.onpointerdown=move; svg.onpointerleave=()=>ro.style.opacity=0;
 }
 
-// ---------- render: 10 jours ----------
+// ---------- render: 10 jours (suit l'activité choisie) ----------
 function renderTenDays(){
   const now=Date.now(); const box=document.getElementById('tendays'); if(!box) return;
+  const act=currentAct, m=META[act];
+  const line=document.getElementById('tdActLine');
+  if(line) line.textContent = m.wind ? `créneaux ${m.short.toLowerCase()} (départ + vent, prévu sur 7 j)` : `créneaux ${m.short.toLowerCase()} (heure de départ)`;
   if(!inRange(now)){ box.innerHTML='<div class="empty" style="padding:1rem">Table de marées expirée.</div>'; return; }
   const days=[]; let ms=now; while(days.length<10){ const k=dayKey(ms); if(!days.includes(k)) days.push(k); ms+=26*3600e3; }
   const byday={}; days.forEach(k=>byday[k]=[]);
   for(let j=Math.max(0,idxBefore(now)-5); j<EX.length; j++){ const e=EX[j]; if(e.t>now+11*864e5) break; const k=dayKey(e.t); if(k in byday) byday[k].push(e); }
-  const bwins=windows('baignade', now-6*3600e3, now+11*864e5);
+  const wins=windows(act, now-6*3600e3, now+11*864e5);
   const travel=cfg.travelMin*60000;
   let html='';
   for(const k of days){
@@ -827,18 +812,25 @@ function renderTenDays(){
     const cc=coefColors(cmax), lab=coefLabel(cmax), barW=cmax!=null?Math.max(4,Math.min(100,(cmax-20)/100*100)):0;
     const dname=cap(fmtDay.format(new Date(evs[0].t)));
     const fmtEv=e=>`${hmFr(e.t)} <span style="color:var(--muted)">${mM(e.h)}</span>`;
-    const todayW=bwins.filter(w=>dayKey(w.start)===k);
-    let baig = todayW.length
-      ? `<div class="dbaig">${svgTag(ICON.umbrella)} `+todayW.map(w=>`${hmFr(w.start)}–${hmFr(w.end)} <span class="dep">(départ ${hmFr(round5(w.start-travel))})</span>`).join(' · ')+`</div>`
-      : `<div class="dbaig no">${svgTag(ICON.umbrella)} Mer trop basse pour la baignade (seuil ${cfg.baignade.hmin.toString().replace('.',',')} m — réglable)</div>`;
-    html+=`<div class="dcard">
+    const todayW=wins.filter(w=>dayKey(w.start)===k);
+    let slots;
+    if(todayW.length){
+      slots='<div class="dslots">'+todayW.map(w=>{
+        let extra=`départ ${hmFr(round5(w.start-travel))}`;
+        if(m.wind){ extra += w.windKnown && w.wmax>-1e9 ? ` · ${Math.round(w.wmin)}–${Math.round(w.wmax)} km/h` : ` · vent ?`; }
+        return `<div class="dslot"><span class="dtime">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="dmeta">${extra}</span></div>`;
+      }).join('')+'</div>';
+    } else {
+      slots=`<div class="dnone">${svgTag(ICON[m.icon])} Pas de créneau ${m.short.toLowerCase()} ce jour</div>`;
+    }
+    html+=`<div class="dcard" style="--ac:${m.color}">
       <div class="dtop"><span class="dname">${dname}</span>
         <span class="cbadge" style="color:${cc.fg};background:${cc.bg}">coef <b>${cmax??'–'}</b> · ${lab}</span></div>
       <div class="cbar"><i style="width:${barW}%;background:${barColor(cmax)}"></i></div>
       <div class="dtides">
         <div class="tl"><span class="h">${svgTag(ICON.up)} Pleines mers</span>${highs.map(fmtEv).join(' · ')||'—'}</div>
         <div class="tl"><span class="h">${svgTag(ICON.down)} Basses mers</span>${lows.map(fmtEv).join(' · ')||'—'}</div>
-      </div>${baig}</div>`;
+      </div>${slots}</div>`;
   }
   box.innerHTML=html;
 }
@@ -945,7 +937,13 @@ function showView(v){
 function renderAll(){
   const now=Date.now();
   document.getElementById('rangeWarn').style.display = inRange(now)?'none':'block';
-  renderNow(); renderWind(); renderDeparture(); renderActs(); renderWindows(); renderChart();
+  renderNow(); renderWind(); renderDeparture(); renderActs(); renderChart();
+  if(!document.getElementById('view-tendays').hidden) renderTenDays();
+}
+function setAct(act){
+  currentAct=act;
+  document.querySelectorAll('#seg button, #segTen button').forEach(x=>x.setAttribute('aria-selected', x.dataset.act===act));
+  renderDeparture(); renderChart();
   if(!document.getElementById('view-tendays').hidden) renderTenDays();
 }
 let rafPending=false;
@@ -1000,9 +998,9 @@ function init(){
   bind('plancheH','planche','hmin'); bind('plancheWmin','planche','wmin'); bind('plancheWmax','planche','wmax');
   document.getElementById('resetBtn').addEventListener('click',()=>{ cfg=JSON.parse(JSON.stringify(DEF)); saveCfg(); syncSliders(); renderAll(); });
 
-  document.getElementById('seg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
-    currentAct=b.dataset.act; [...document.querySelectorAll('#seg button')].forEach(x=>x.setAttribute('aria-selected', x===b));
-    renderDeparture(); renderChart(); renderWindows(); });
+  const onSeg=e=>{ const b=e.target.closest('button'); if(!b) return; setAct(b.dataset.act); };
+  document.getElementById('seg').addEventListener('click',onSeg);
+  document.getElementById('segTen').addEventListener('click',onSeg);
 
   for(const k in TABS) document.getElementById(TABS[k]).addEventListener('click',()=>showView(k));
   document.getElementById('refreshWind').addEventListener('click',loadWind);
@@ -1018,7 +1016,7 @@ function init(){
   renderAll();
   loadWind();
 
-  setInterval(()=>{ renderNow(); renderDeparture(); renderActs(); renderWindows(); if(WIND) renderWind(); }, 60000);
+  setInterval(()=>{ renderNow(); renderDeparture(); renderActs(); if(WIND) renderWind(); if(!document.getElementById('view-tendays').hidden) renderTenDays(); }, 60000);
   setInterval(renderChart, 5*60000);
   setInterval(loadWind, 30*60000);
   window.addEventListener('online', loadWind);
