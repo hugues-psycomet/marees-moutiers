@@ -590,16 +590,49 @@ function windAt(ms){
 const DIRS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
 const dirTxt=d=>DIRS[Math.round(d/22.5)%16];
 
+// ---------- soleil (lever/coucher, calcul local hors-ligne) ----------
+const _sunCache={};
+function sunTimes(ms){
+  const rad=Math.PI/180;
+  const jd=ms/86400000+2440587.5;
+  const n=Math.round(jd-2451545.0+0.0008);
+  const lw=-LON;
+  const Jstar=n-lw/360;
+  const M=(357.5291+0.98560028*Jstar)%360;
+  const C=1.9148*Math.sin(M*rad)+0.0200*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad);
+  const lam=(M+C+180+102.9372)%360;
+  const Jtr=2451545.0+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad);
+  const delta=Math.asin(Math.sin(lam*rad)*Math.sin(23.44*rad));
+  const cosH=(Math.sin(-0.833*rad)-Math.sin(LAT*rad)*Math.sin(delta))/(Math.cos(LAT*rad)*Math.cos(delta));
+  const toMs=J=>(J-2440587.5)*86400000;
+  if(cosH>1) return {sunrise:null,sunset:null,polar:'night'};
+  if(cosH<-1) return {sunrise:null,sunset:null,polar:'day'};
+  const H=Math.acos(cosH)/rad;
+  return {sunrise:toMs(Jtr-H/360), sunset:toMs(Jtr+H/360)};
+}
+const SUN_GRACE=30*60000; // tolérance aube/crépuscule
+function isDaylight(ms){
+  const k=dayKey(ms); let s=_sunCache[k];
+  if(!s){ s=sunTimes(Date.parse(k+'T12:00:00Z')); _sunCache[k]=s; } // ancré sur midi du jour local
+  if(s.polar==='day') return true; if(s.polar==='night') return false;
+  if(s.sunrise==null) return true;
+  return ms>=s.sunrise-SUN_GRACE && ms<=s.sunset+SUN_GRACE;
+}
+
 // ---------- activity eval ----------
 function evalAct(act, ms){
   const c=cfg[act], m=META[act];
   const t=tideAt(ms); const waterOK = t.h >= c.hmin;
-  if(!m.wind) return {ok:waterOK, water:waterOK, h:t.h, rising:t.rising, windKnown:true, windOK:true, reason: waterOK?null:'water'};
-  const w=windAt(ms);
-  if(!w) return {ok:waterOK, water:waterOK, h:t.h, rising:t.rising, windKnown:false, windOK:null, reason: waterOK?'windUnknown':'water', wind:null};
-  const windOK = w.ws>=c.wmin && w.ws<=c.wmax;
-  return {ok: waterOK&&windOK, water:waterOK, h:t.h, rising:t.rising, windKnown:true, windOK, wind:w,
-          reason: !waterOK?'water':(!windOK?(w.ws<c.wmin?'windLow':'windHigh'):null)};
+  let res;
+  if(!m.wind){ res={ok:waterOK, water:waterOK, h:t.h, rising:t.rising, windKnown:true, windOK:true, reason: waterOK?null:'water'}; }
+  else { const w=windAt(ms);
+    if(!w){ res={ok:waterOK, water:waterOK, h:t.h, rising:t.rising, windKnown:false, windOK:null, reason: waterOK?'windUnknown':'water', wind:null}; }
+    else { const windOK = w.ws>=c.wmin && w.ws<=c.wmax;
+      res={ok: waterOK&&windOK, water:waterOK, h:t.h, rising:t.rising, windKnown:true, windOK, wind:w,
+           reason: !waterOK?'water':(!windOK?(w.ws<c.wmin?'windLow':'windHigh'):null)}; }
+  }
+  if(!isDaylight(ms)){ res.ok=false; res.day=false; res.reason='night'; } else res.day=true;
+  return res;
 }
 function windows(act, from, to, stepMin=10){
   const step=stepMin*60e3; from=Math.floor(from/step)*step; // grille ancrée
@@ -681,8 +714,8 @@ function renderDeparture(){
       +`<div class="big"><span class="time">${m.gearNow}</span></div>`
       +`<div class="quip">C'est le moment. Il y a déjà assez d'eau.</div>`
       +`<div class="sub2">${canStill
-          ? `Vous pouvez encore partir jusqu'à <b>${hmFr(round5(lastLeave))}</b> ; l'eau se retire vers <b>${hmFr(ongoing.end)}</b>.`
-          : `Filez maintenant — l'eau redescend vers <b>${hmFr(ongoing.end)}</b>.`}</div>`
+          ? `Vous pouvez encore partir jusqu'à <b>${hmFr(round5(lastLeave))}</b> — créneau jusqu'à <b>${hmFr(ongoing.end)}</b>.`
+          : `Filez maintenant — le créneau se termine vers <b>${hmFr(ongoing.end)}</b>.`}</div>`
       +chips(ongoing,m);
   } else if(upcoming){
     const dep=round5(upcoming.start-travel), depEnd=upcoming.end-travel-MIN_USE;
@@ -717,6 +750,7 @@ function renderActs(){
     const el=document.createElement('div'); el.className='act'; el.style.setProperty('--ac',m.color);
     let badge;
     if(!inR) badge='<span class="badge warn">table expirée</span>';
+    else if(e.reason==='night') badge='<span class="badge warn">🌙 Nuit</span>';
     else if(e.ok && e.windKnown) badge='<span class="badge ok">✓ Possible maintenant</span>';
     else if(e.reason==='water') badge='<span class="badge bad">✕ Pas assez d\'eau</span>';
     else if(e.reason==='windLow') badge='<span class="badge warn">△ Vent trop faible</span>';
