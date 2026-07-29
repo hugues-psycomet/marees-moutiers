@@ -224,6 +224,12 @@ input[type=range]{width:100%; margin-top:0.6rem; accent-color:var(--sea); height
 .btn:active{transform:scale(.98)}
 footer{font-size:0.78rem; color:var(--ink-2); text-align:center; padding:0.4rem 0.5rem 0.7rem; line-height:1.55}
 footer b{color:var(--ink)}
+.signature{margin-top:0.7rem; font-size:0.82rem; font-weight:800; letter-spacing:.01em; color:var(--sea-deep);}
+.signature b{color:inherit;}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .signature{background:linear-gradient(90deg,var(--sea),var(--planche),var(--coral)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .signature b{color:transparent;}
+}
 
 /* tab bar */
 nav.tabbar{position:fixed; left:0; right:0; bottom:0; z-index:20; display:flex; justify-content:center; gap:0.4rem;
@@ -363,6 +369,7 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
   <footer>
     Marées : prévisions calées sur les horaires officiels (SHOM, via mareespeche.com) — juillet 2026 exact, autres dates modélisées (calage : <span id="fPrec">±7 min / ±0,12 m</span> ; vérifié sur un autre mois : ~15–25 min selon les sources).<br>
     Vent &amp; météo en direct : Open-Meteo. Outil d'aide au loisir — <b>ne pas utiliser pour la sécurité de la navigation</b>. Vérifiez toujours la météo marine et les consignes locales.
+    <div class="signature">🌊 App vibe-codée &amp; offerte par <b>Yugz</b> — pour la bande 🤙</div>
   </footer>
   </div><!-- /view-main -->
 
