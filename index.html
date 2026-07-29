@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a5568" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#07141c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0a5568">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="À l'eau">
@@ -22,8 +21,7 @@
   --baignade-soft:#fbe6cf; --voile-soft:#d5eeef; --planche-soft:#e6e0fb;
   --radius:20px; --shadow:0 1px 2px rgba(10,85,104,.05),0 10px 30px rgba(10,85,104,.09);
 }
-@media (prefers-color-scheme: dark){
-  :root{
+:root[data-theme="dark"]{
     --bg:#071820; --bg2:#0c2530; --surface:#0f2731; --surface-2:#153039; --ink:#f0f6f4; --ink-2:#b7ccd3;
     --muted:#88a1a9; --line:#20404b; --sea:#4bbccb; --sea-deep:#cbe9f0;
     --sea-fill1:rgba(75,188,203,.26); --sea-fill2:rgba(75,188,203,.02);
@@ -32,7 +30,6 @@
     --baignade:#f2a25b; --voile:#4ec7cd; --planche:#a495f7;
     --baignade-soft:#33260f; --voile-soft:#0f3238; --planche-soft:#211a3a;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.4);
-  }
 }
 *{box-sizing:border-box}
 html{font-size:100%}
@@ -52,6 +49,11 @@ header.app h1{font-size:1.35rem; margin:0; letter-spacing:-.015em; font-weight:8
 header.app .sub{font-size:0.8rem; opacity:.92; margin-top:0.2rem}
 header.app .clock{position:relative; z-index:1; font-variant-numeric:tabular-nums; text-align:right; font-size:0.78rem; opacity:.94}
 header.app .clock b{display:block; font-size:1.1rem; font-weight:750}
+header.app .hright{position:relative; z-index:2; display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem}
+.themebtn{width:34px; height:34px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.16); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px)}
+.themebtn:active{transform:scale(.94)}
+.themebtn svg{width:1.05rem; height:1.05rem}
 
 .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:1rem; margin-bottom:0.875rem}
 .card h2{font-size:0.82rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); margin:0 0 0.75rem; font-weight:700}
@@ -252,7 +254,10 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
       <h1>À l'eau, les Moutiers&nbsp;!</h1>
       <div class="sub">La marée de la bande · Pointe de la Prée</div>
     </div>
-    <div class="clock"><b id="clkTime">–</b><span id="clkDate">–</span></div>
+    <div class="hright">
+      <button id="themeToggle" class="themebtn" type="button" aria-label="Basculer thème clair / sombre"></button>
+      <div class="clock"><b id="clkTime">–</b><span id="clkDate">–</span></div>
+    </div>
   </header>
 
   <div id="view-main">
@@ -487,6 +492,8 @@ const ICON={
   chevron:'M9 5l6 7-6 7',
   up:'M5 15l7-7 7 7',
   down:'M5 9l7 7 7-7',
+  sun:'M12 4.2V2.5 M12 21.5v-1.7 M4.2 12H2.5 M21.5 12h-1.7 M6 6l-1.2-1.2 M19.2 19.2 18 18 M18 6l1.2-1.2 M4.8 19.2 6 18 M12 7.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8z',
+  moon:'M20 14.4A8 8 0 1 1 9.6 4 6.5 6.5 0 0 0 20 14.4z',
 };
 function svgTag(path,extra){ return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"'+(extra||'')+'>'+'<path d="'+path+'"/></svg>'; }
 function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEach(el=>{ const p=ICON[el.dataset.icon]; if(p) el.innerHTML=svgTag(p); }); }
@@ -964,9 +971,21 @@ function bind(id,key,sub){
     saveCfg(); scheduleRender(); });
 }
 
+// ---------- theme (clair par défaut, sombre au choix) ----------
+const LS_THEME='moutiers-theme';
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  const btn=document.getElementById('themeToggle');
+  if(btn){ btn.innerHTML=svgTag(t==='dark'?ICON.sun:ICON.moon); btn.setAttribute('aria-label', t==='dark'?'Passer en thème clair':'Passer en thème sombre'); }
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.setAttribute('content', t==='dark'?'#07141c':'#0a5568'));
+}
+function initTheme(){ let t='light'; try{ const s=localStorage.getItem(LS_THEME); if(s==='dark'||s==='light') t=s; }catch(e){} applyTheme(t); }
+function toggleTheme(){ const cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'; const next=cur==='dark'?'light':'dark'; try{ localStorage.setItem(LS_THEME,next); }catch(e){} applyTheme(next); }
+
 // ---------- init ----------
 function init(){
   fillIcons();
+  initTheme();
   fillPrecision();
   loadCfg(); syncSliders();
   // manifest
@@ -987,6 +1006,7 @@ function init(){
   for(const k in TABS) document.getElementById(TABS[k]).addEventListener('click',()=>showView(k));
   document.getElementById('refreshWind').addEventListener('click',loadWind);
   document.getElementById('camReload').addEventListener('click',()=>loadCam(true));
+  document.getElementById('themeToggle').addEventListener('click',toggleTheme);
 
   // coefficient explainer
   const coefMsg='Le coefficient (20 → 120) mesure l\'ampleur de la marée. Plus il est fort (vive-eau), plus la mer monte haut et descend bas — idéal pour se baigner à marée haute.';
