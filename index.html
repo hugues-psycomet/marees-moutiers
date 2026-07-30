@@ -342,8 +342,8 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
   <section class="card">
     <h2 style="display:flex;justify-content:space-between;align-items:center">Vent <button class="btn" id="refreshWind" style="text-transform:none;letter-spacing:0;padding:0.5rem 0.9rem">↻ Actualiser</button></h2>
     <div class="windgrid">
-      <div class="w"><div class="v" id="wSpeed">–</div><div class="k">vent km/h</div></div>
-      <div class="w"><div class="v" id="wGust">–</div><div class="k">rafales</div></div>
+      <div class="w"><div class="v" id="wSpeed">–</div><div class="k" id="wSpeedUnit">vent km/h</div></div>
+      <div class="w"><div class="v" id="wGust">–</div><div class="k" id="wGustUnit">rafales</div></div>
       <div class="w"><div class="v"><span class="arrow" id="wArrow">↑</span> <span id="wDirTxt">–</span></div><div class="k">vient du</div></div>
     </div>
     <div class="windknots" id="windKnots"></div>
@@ -385,10 +385,10 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
           <input type="range" id="voileH" min="1" max="5.5" step="0.1" value="4.1" aria-label="Voile, eau minimale en mètres">
           <div class="hint">Un dériveur a une dérive qui descend jusqu'à 1 m ou plus : il lui faut donc nettement plus d'eau qu'à une planche.</div></div>
         <div class="dual">
-          <div class="field voile"><div class="row"><label for="voileWmin">Vent min (km/h)</label><span class="val"><span id="vVoileWmin">8</span></span></div>
-            <input type="range" id="voileWmin" min="0" max="30" step="1" value="8" aria-label="Voile, vent minimal en km/h"></div>
-          <div class="field voile"><div class="row"><label for="voileWmax">Vent max (km/h)</label><span class="val"><span id="vVoileWmax">28</span></span></div>
-            <input type="range" id="voileWmax" min="10" max="50" step="1" value="28" aria-label="Voile, vent maximal en km/h"></div>
+          <div class="field voile"><div class="row"><label for="voileWmin">Vent min (nœuds)</label><span class="val"><span id="vVoileWmin">4</span></span></div>
+            <input type="range" id="voileWmin" min="0" max="30" step="1" value="8" aria-label="Voile, vent minimal en nœuds"></div>
+          <div class="field voile"><div class="row"><label for="voileWmax">Vent max (nœuds)</label><span class="val"><span id="vVoileWmax">15</span></span></div>
+            <input type="range" id="voileWmax" min="10" max="50" step="1" value="28" aria-label="Voile, vent maximal en nœuds"></div>
         </div>
       </div>
 
@@ -398,10 +398,10 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
           <input type="range" id="plancheH" min="1" max="5.5" step="0.1" value="3.4" aria-label="Planche, eau minimale en mètres">
           <div class="hint">L'aileron d'une planche fait ~30 cm : elle se lance dans peu d'eau, bien avant qu'un dériveur ne puisse sortir.</div></div>
         <div class="dual">
-          <div class="field planche"><div class="row"><label for="plancheWmin">Vent min (km/h)</label><span class="val"><span id="vPlancheWmin">15</span></span></div>
-            <input type="range" id="plancheWmin" min="0" max="35" step="1" value="15" aria-label="Planche, vent minimal en km/h"></div>
-          <div class="field planche"><div class="row"><label for="plancheWmax">Vent max (km/h)</label><span class="val"><span id="vPlancheWmax">45</span></span></div>
-            <input type="range" id="plancheWmax" min="15" max="60" step="1" value="45" aria-label="Planche, vent maximal en km/h"></div>
+          <div class="field planche"><div class="row"><label for="plancheWmin">Vent min (nœuds)</label><span class="val"><span id="vPlancheWmin">8</span></span></div>
+            <input type="range" id="plancheWmin" min="0" max="35" step="1" value="15" aria-label="Planche, vent minimal en nœuds"></div>
+          <div class="field planche"><div class="row"><label for="plancheWmax">Vent max (nœuds)</label><span class="val"><span id="vPlancheWmax">24</span></span></div>
+            <input type="range" id="plancheWmax" min="15" max="60" step="1" value="45" aria-label="Planche, vent maximal en nœuds"></div>
         </div>
       </div>
       <div style="margin-top:0.9rem"><button class="btn" id="resetBtn">Réinitialiser</button></div>
@@ -541,6 +541,7 @@ const ICON={
   cam:'M3 7.5h9.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 15V9A1.5 1.5 0 0 1 3 7.5z M14 11l6-3.2v8.4L14 13',
   info:'M12 2.9a9.1 9.1 0 1 0 0 18.2 9.1 9.1 0 0 0 0-18.2z M12 11v5.6 M12 7.7h.02',
   umbrella:'M12 3a8.5 8.5 0 0 1 8.5 8.5H3.5A8.5 8.5 0 0 1 12 3z M12 11.5v6.9a2.3 2.3 0 0 0 4.3 0',
+  swim:'M18 7.6a1.7 1.7 0 1 1-3.4 0 1.7 1.7 0 0 1 3.4 0 M4.5 13l4.3-2.4 3.2 2.7 M12 13.3l3.5-2.3 M2.6 18c1.5 1.1 3 1.1 4.6 0 1.5-1.1 3-1.1 4.6 0 1.5 1.1 3 1.1 4.6 0 1.5-1.1 3-1.1 4.6 0',
   sail:'M13 3.2 6.6 16H13z M4.4 19h17l-2.2-2.7H6.6z M13 3.2V16',
   windsurf:'M4 19c5-1.3 11-1.3 16 0 M12.6 4 9.2 16.6 M12.6 5c-2.6 1.8-4 5.2-4.4 10l6.6-1.4z',
   chevron:'M9 5l6 7-6 7',
@@ -555,7 +556,7 @@ function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEa
 // ---------- config + persistence ----------
 const DEF = { travelMin:10, baignade:{hmin:3.2}, voile:{hmin:4.1, wmin:8, wmax:28}, planche:{hmin:3.4, wmin:15, wmax:45} };
 const META = {
-  baignade:{label:'Baignade', short:'Baignade', icon:'umbrella', color:'var(--baignade)', wind:false, go:'Maillots, serviettes — en route', gearNow:'À l\'eau !', name:'la baignade'},
+  baignade:{label:'Baignade', short:'Baignade', icon:'swim', color:'var(--baignade)', wind:false, go:'Maillots, serviettes — en route', gearNow:'À l\'eau !', name:'la baignade'},
   voile:{label:'Voile — dériveur · Laser · 420', short:'Voile', icon:'sail', color:'var(--voile)', wind:true, go:'Larguez les amarres', gearNow:'Cap sur l\'eau !', name:'la voile'},
   planche:{label:'Planche à voile', short:'Planche', icon:'windsurf', color:'var(--planche)', wind:true, go:'Gréez la voile', gearNow:'Ça va planer !', name:'la planche'},
 };
@@ -839,14 +840,17 @@ function renderWind(){
   const now=Date.now(); const w=windAt(now);
   const s=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   const upd=document.getElementById('windUpd');
+  const knots = !!(META[currentAct] && META[currentAct].wind);  // voile/planche → nœuds
+  s('wSpeedUnit', knots?'vent nœuds':'vent km/h');
+  s('wGustUnit', knots?'rafales nds':'rafales');
   if(!w){ s('wSpeed','–');s('wGust','–');s('wDirTxt','–'); s('windKnots','');
     if(upd) upd.textContent = windError?'Hors ligne — dernier essai échoué.':(WIND?'Prévision indisponible pour cette heure.':'');
     renderConditions(); return; }
-  s('wSpeed',Math.round(w.ws)); s('wGust',Math.round(w.wg)); s('wDirTxt',dirTxt(w.wd));
+  s('wSpeed', knots?kn(w.ws):Math.round(w.ws)); s('wGust', knots?kn(w.wg):Math.round(w.wg)); s('wDirTxt',dirTxt(w.wd));
   const arrow=document.getElementById('wArrow'); if(arrow) arrow.style.transform=`rotate(${w.wd+180}deg)`;
   if(upd) upd.textContent = (windUpdated?('Mis à jour à '+hmFr(windUpdated)):'') + (windError?' · actualisation impossible':'');
   const kel=document.getElementById('windKnots');
-  if(kel) kel.innerHTML = `Soit ≈ <b>${kn(w.ws)}</b> nœuds · rafales ≈ <b>${kn(w.wg)}</b> nds`;
+  if(kel) kel.innerHTML = knots ? '' : `Soit ≈ <b>${kn(w.ws)}</b> nœuds · rafales ≈ <b>${kn(w.wg)}</b> nds`;
   renderConditions();
 }
 
@@ -875,7 +879,7 @@ function stats(w,m){
   ];
   if(m.wind){
     if(!w.windKnown) cells.push(['vent', WIND?'pas encore prévu':'hors ligne']);
-    else if(w.wmax>-1e9) cells.push(['km/h · '+kn(w.wmin)+'–'+kn(w.wmax)+' nds', Math.round(w.wmin)+'–'+Math.round(w.wmax)]);
+    else if(w.wmax>-1e9) cells.push(['vent nœuds', kn(w.wmin)+'–'+kn(w.wmax)]);
   }
   const cls = cells.length===2?' two':'';
   return `<div class="dstats${cls}">`+cells.map(c=>`<div class="d"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join('')+`</div>`;
@@ -1021,7 +1025,7 @@ function renderTenDays(){
     if(todayW.length){
       slots='<div class="dslots">'+todayW.map(w=>{
         let extra=`départ ${hmFr(round5(w.start-travel))}`;
-        if(m.wind){ extra += w.windKnown && w.wmax>-1e9 ? ` · ${Math.round(w.wmin)}–${Math.round(w.wmax)} km/h` : ` · vent ?`; }
+        if(m.wind){ extra += w.windKnown && w.wmax>-1e9 ? ` · ${kn(w.wmin)}–${kn(w.wmax)} nds` : ` · vent ?`; }
         const v=slotVibe(w, act);
         return `<div class="dslot"><div class="dtop2"><span class="dtime">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="dmeta">${extra}</span></div><div class="dvibe"><span class="em">${v.i}</span> ${v.t}</div></div>`;
       }).join('')+'</div>';
@@ -1152,15 +1156,16 @@ function renderAll(){
 function setAct(act){
   currentAct=act;
   document.querySelectorAll('#seg button, #segTen button').forEach(x=>x.setAttribute('aria-checked', x.dataset.act===act));
-  renderMarine(); renderDeparture(); renderChart();
+  renderWind(); renderMarine(); renderDeparture(); renderChart();
   if(!document.getElementById('view-tendays').hidden) renderTenDays();
 }
 let rafPending=false;
 function scheduleRender(){ if(rafPending) return; rafPending=true; requestAnimationFrame(()=>{ rafPending=false; renderAll(); }); }
 
 // ---------- settings ----------
+const WINDF=new Set(['voileWmin','voileWmax','plancheWmin','plancheWmax']); // affichés en nœuds, stockés en km/h
 function syncSliders(){
-  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; const l=document.getElementById('v'+id.charAt(0).toUpperCase()+id.slice(1)); if(l) l.textContent=Number.isInteger(v)?v:String(v).replace('.',','); };
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; const l=document.getElementById('v'+id.charAt(0).toUpperCase()+id.slice(1)); if(l) l.textContent = WINDF.has(id)? kn(v) : (Number.isInteger(v)?v:String(v).replace('.',',')); };
   set('travel',cfg.travelMin);
   set('baignadeH',cfg.baignade.hmin);
   set('voileH',cfg.voile.hmin); set('voileWmin',cfg.voile.wmin); set('voileWmax',cfg.voile.wmax);
@@ -1175,7 +1180,7 @@ function bind(id,key,sub){
     if(id==='voileWmax'&&cfg.voile.wmax<cfg.voile.wmin){cfg.voile.wmin=cfg.voile.wmax;syncSliders();}
     if(id==='plancheWmin'&&cfg.planche.wmin>cfg.planche.wmax){cfg.planche.wmax=cfg.planche.wmin;syncSliders();}
     if(id==='plancheWmax'&&cfg.planche.wmax<cfg.planche.wmin){cfg.planche.wmin=cfg.planche.wmax;syncSliders();}
-    if(lab) lab.textContent = Number.isInteger(v)?v:v.toString().replace('.',',');
+    if(lab) lab.textContent = WINDF.has(id)? kn(v) : (Number.isInteger(v)?v:v.toString().replace('.',','));
     saveCfg(); scheduleRender(); });
 }
 
