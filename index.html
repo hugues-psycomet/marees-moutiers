@@ -138,6 +138,10 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .chartlegend2 .lg-zone{width:15px; height:11px; border-radius:3px; background:var(--ac); opacity:.18}
 .chartlegend2 .lg-thr{width:16px; height:0; border-top:2px dashed var(--ac); align-self:center}
 .condstrip{margin-top:0.9rem}
+.depart .pratique{margin-top:1rem; border-top:1px dashed var(--line); padding-top:0.85rem}
+.depart .pratique .pratique-sep{font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--ac); margin-bottom:0.6rem}
+.depart .pratique .condstrip{margin-top:0}
+.depart .pratique .uvnote{margin-top:0.6rem}
 
 /* wind */
 .windgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem}
@@ -292,7 +296,18 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
   </div>
 
   <!-- DÉPART -->
-  <section class="card depart" id="departCard"></section>
+  <section class="card depart" id="departCard">
+    <div id="departBody"></div>
+    <div class="pratique" id="pratique">
+      <div class="pratique-sep"><span>Infos pratiques</span></div>
+      <div class="windgrid condstrip">
+        <div class="w"><div class="v" id="wTemp">–</div><div class="k">air °C</div></div>
+        <div class="w"><div class="v" id="wWater">–</div><div class="k">eau °C</div></div>
+        <div class="w"><div class="v" id="wUV">–</div><div class="k">indice UV</div></div>
+      </div>
+      <div class="uvnote" id="uvNote"></div>
+    </div>
+  </section>
 
   <!-- NOW -->
   <section class="card" id="nowCard">
@@ -315,12 +330,6 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
       <div class="n"><div class="lab"><span class="dot" style="background:var(--sea)"></span>Prochaine pleine mer</div><div class="val" id="nextPM">–</div><div class="sm" id="nextPMh">–</div></div>
       <div class="n"><div class="lab"><span class="dot" style="background:var(--muted)"></span>Prochaine basse mer</div><div class="val" id="nextBM">–</div><div class="sm" id="nextBMh">–</div></div>
     </div>
-    <div class="windgrid condstrip">
-      <div class="w"><div class="v" id="wTemp">–</div><div class="k">air °C</div></div>
-      <div class="w"><div class="v" id="wWater">–</div><div class="k">eau °C</div></div>
-      <div class="w"><div class="v" id="wUV">–</div><div class="k">indice UV</div></div>
-    </div>
-    <div class="uvnote" id="uvNote"></div>
   </section>
 
   <!-- CHART -->
@@ -888,11 +897,12 @@ function rainNote(w){ return (w && w.precipMax>=0.3) ? `<div class="drain">☔ A
 function renderDeparture(){
   const act=currentAct, m=META[act], now=Date.now();
   const card=document.getElementById('departCard'); if(!card) return;
+  const body=document.getElementById('departBody'); if(!body) return;
   card.style.setProperty('--ac', m.color); card.classList.remove('none');
   const head=`<div class="dhead">${svgTag(ICON[m.icon])} ${m.short}</div>`;
   const fine=`<div class="dfine">Trajet ${cfg.travelMin}${NB}min (réglable) · horaires à ±15–20 min près · au moins 20 min d'eau à l'arrivée</div>`;
   if(!inRange(now)){ card.classList.add('none');
-    card.innerHTML=head+`<div class="verdict no">Version à mettre à jour</div>`
+    body.innerHTML=head+`<div class="verdict no">Version à mettre à jour</div>`
       +`<div class="big"><span class="time">—</span></div>`
       +`<div class="dline">Cette version couvre les marées jusqu'au <b>${cap(fmtDay.format(new Date(T1)))}</b>. Demandez la nouvelle version à Yugz 🤙</div>`;
     return;
@@ -935,7 +945,7 @@ function renderDeparture(){
           ? 'Vent indisponible — impossible d\'évaluer '+m.name+' pour l\'instant. Reconnectez-vous, ou passez sur la baignade (sans vent).'
           : 'Aucun créneau sur 10 jours avec vos réglages. Assouplissez les seuils dans Réglages, ou repérez les grands coefficients dans l\'onglet 10 jours.'}</div>`;
   }
-  card.innerHTML=html;
+  body.innerHTML=html;
 }
 
 // ---------- render: chart ----------
