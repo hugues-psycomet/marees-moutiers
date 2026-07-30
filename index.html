@@ -170,9 +170,12 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .dbaig .dep{color:var(--baignade); font-weight:800}
 .dbaig svg{width:1rem;height:1rem;color:var(--baignade)}
 .dslots{margin-top:0.6rem; display:flex; flex-direction:column; gap:0.35rem}
-.dslot{display:flex; align-items:baseline; justify-content:space-between; gap:0.7rem; font-size:0.84rem; font-variant-numeric:tabular-nums; padding-left:0.55rem; border-left:3px solid var(--ac)}
+.dslot{display:flex; flex-direction:column; gap:0.2rem; font-size:0.84rem; font-variant-numeric:tabular-nums; padding-left:0.6rem; border-left:3px solid var(--ac)}
+.dslot .dtop2{display:flex; align-items:baseline; justify-content:space-between; gap:0.7rem}
 .dslot .dtime{font-weight:750; color:var(--ink)}
 .dslot .dmeta{color:var(--ink-2); text-align:right; white-space:nowrap}
+.dslot .dvibe{font-size:0.79rem; color:var(--ink-2); font-variant-numeric:normal; display:flex; align-items:center; gap:0.35rem; line-height:1.35}
+.dslot .dvibe .em{flex:none; font-size:0.92rem}
 .dnone{margin-top:0.6rem; font-size:0.8rem; font-weight:600; color:var(--ink-2); display:flex; align-items:center; gap:0.4rem}
 .dnone svg{width:1rem;height:1rem; opacity:.7}
 .tdintro{font-size:0.83rem; color:var(--ink-2); margin:0 0 0.75rem; line-height:1.5}
@@ -946,6 +949,19 @@ function attachHover(svg,X,t0,t1){
 }
 
 // ---------- render: 10 jours (suit l'activité choisie) ----------
+const _hFmt=new Intl.DateTimeFormat('en-GB',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hour12:false});
+function localHour(ms){ const p=_hFmt.formatToParts(new Date(ms)); const h=+p.find(x=>x.type==='hour').value, m=+p.find(x=>x.type==='minute').value; return h+m/60; }
+// petit mot + icône selon le moment de la journée (et l'activité)
+function slotVibe(w, act){
+  const hs=localHour(w.start), he=localHour(w.end), swim=(act==='baignade');
+  if(he<=10)  return {i:'🌅', t: swim?'Le bain du matin, avant la foule' : 'Sortie au lever du jour, mer pour vous seuls'};
+  if(hs>=17)  return {i:'🌇', t: swim?'Baignade du soir, en pleine lumière dorée' : 'Sortie du soir, souvent moins de monde'};
+  if(hs>=12)  return {i:'☀️', t: (he>18.5) ? (swim?'Après-midi et soirée à la plage' : 'Après-midi et soirée sur l\'eau')
+                                           : (swim?'Après-midi farniente à la plage' : 'Belle après-midi sur l\'eau')};
+  if(he<=13)  return {i:'🌅', t: swim?'Baignade en matinée' : 'Sortie en matinée'};
+  return {i:'☀️', t: (he>18.5) ? (swim?'Grande journée : de la mer du matin au soir' : 'Large fenêtre, du matin au soir')
+                               : (swim?'Belle demi-journée à la plage' : 'Belle demi-journée sur l\'eau')};
+}
 function renderTenDays(){
   const now=Date.now(); const box=document.getElementById('tendays'); if(!box) return;
   const act=currentAct, m=META[act];
@@ -971,7 +987,8 @@ function renderTenDays(){
       slots='<div class="dslots">'+todayW.map(w=>{
         let extra=`départ ${hmFr(round5(w.start-travel))}`;
         if(m.wind){ extra += w.windKnown && w.wmax>-1e9 ? ` · ${Math.round(w.wmin)}–${Math.round(w.wmax)} km/h` : ` · vent ?`; }
-        return `<div class="dslot"><span class="dtime">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="dmeta">${extra}</span></div>`;
+        const v=slotVibe(w, act);
+        return `<div class="dslot"><div class="dtop2"><span class="dtime">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="dmeta">${extra}</span></div><div class="dvibe"><span class="em">${v.i}</span> ${v.t}</div></div>`;
       }).join('')+'</div>';
     } else {
       slots=`<div class="dnone">${svgTag(ICON[m.icon])} Pas de créneau ${m.short.toLowerCase()} ce jour</div>`;
