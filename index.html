@@ -96,6 +96,10 @@ header.app .hright{position:relative; z-index:2; display:flex; flex-direction:co
 .depart .dstats .d{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:0.55rem 0.4rem; text-align:center}
 .depart .dstats .d .v{font-size:1.02rem; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ink)}
 .depart .dstats .d .k{font-size:0.72rem; color:var(--ink-2); text-transform:uppercase; letter-spacing:.02em; margin-top:0.14rem}
+.depart .dbiglbl{font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--ac); margin:0.2rem 0 0.05rem}
+.depart .dnext{font-size:0.85rem; color:var(--ink-2); margin-top:0.75rem}
+.depart .dnext b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+.depart .reglink{color:var(--ac); text-decoration:underline; cursor:pointer; font-weight:600}
 .depart .drain{font-size:0.82rem; color:var(--ink-2); margin-top:0.7rem; padding:0.5rem 0.7rem; border-radius:10px; background:var(--surface-2); border:1px solid var(--line)}
 .depart .dfine{font-size:0.73rem; color:var(--muted); margin-top:0.75rem}
 .depart.none .big .time{font-size:1.5rem; color:var(--ink)}
@@ -565,10 +569,11 @@ function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEa
 // ---------- config + persistence ----------
 const DEF = { travelMin:10, baignade:{hmin:3.2}, voile:{hmin:4.1, wmin:8, wmax:28}, planche:{hmin:3.4, wmin:15, wmax:45} };
 const META = {
-  baignade:{label:'Baignade', short:'Baignade', icon:'swim', color:'var(--baignade)', wind:false, go:'Maillots, serviettes — en route', gearNow:'À l\'eau !', name:'la baignade'},
-  voile:{label:'Voile — dériveur · Laser · 420', short:'Voile', icon:'sail', color:'var(--voile)', wind:true, go:'Larguez les amarres', gearNow:'Cap sur l\'eau !', name:'la voile'},
-  planche:{label:'Planche à voile', short:'Planche', icon:'windsurf', color:'var(--planche)', wind:true, go:'Gréez la voile', gearNow:'Ça va planer !', name:'la planche'},
+  baignade:{label:'Baignade', short:'Baignade', icon:'swim', color:'var(--baignade)', wind:false, gearNow:'À l\'eau !', name:'la baignade'},
+  voile:{label:'Voile — dériveur · Laser · 420', short:'Voile', icon:'sail', color:'var(--voile)', wind:true, gearNow:'Cap sur l\'eau !', name:'la voile'},
+  planche:{label:'Planche à voile', short:'Planche', icon:'windsurf', color:'var(--planche)', wind:true, gearNow:'Ça va planer !', name:'la planche'},
 };
+const LS_ACT='moutiers-act';
 let cfg = JSON.parse(JSON.stringify(DEF));
 const LS='moutiers-cfg-v1';
 function saveCfg(){ try{ localStorage.setItem(LS, JSON.stringify(cfg)); }catch(e){} }
@@ -783,7 +788,7 @@ function renderNow(){
   const now=Date.now(); const t=tideAt(now); const rising=t.rising;
   document.getElementById('nowH').textContent = t.h.toFixed(2).replace('.',',');
   const tr=document.getElementById('nowTrend');
-  tr.innerHTML = (rising? svgTag(ICON.up): svgTag(ICON.down)) + (rising?' Montante':' Descendante');
+  tr.innerHTML = (rising? svgTag(ICON.up): svgTag(ICON.down)) + (rising?' La mer monte':' La mer descend');
   tr.style.color = rising ? 'var(--good)' : 'var(--ink-2)';
   const c=coefNow(now); const cc=coefColors(c);
   const cel=document.getElementById('nowCoef'); cel.textContent=c ?? '–'; cel.style.color=cc.fg; cel.style.background=cc.bg;
@@ -883,8 +888,8 @@ function renderMarine(){
 function stats(w,m){
   // tuiles synthétiques, comme la carte météo — info brute, bien rangée
   let cells=[
-    ['créneau', hmFr(w.start)+'–'+hmFr(w.end)],
-    ['durée', fmtDur(w.end-w.start)],
+    ['assez d\'eau', hmFr(w.start)+'–'+hmFr(w.end)],
+    ['ça dure', fmtDur(w.end-w.start)],
   ];
   if(m.wind){
     if(!w.windKnown) cells.push(['vent', WIND?'pas encore prévu':'hors ligne']);
@@ -893,14 +898,20 @@ function stats(w,m){
   const cls = cells.length===2?' two':'';
   return `<div class="dstats${cls}">`+cells.map(c=>`<div class="d"><div class="v">${c[1]}</div><div class="k">${c[0]}</div></div>`).join('')+`</div>`;
 }
-function rainNote(w){ return (w && w.precipMax>=0.3) ? `<div class="drain">☔ Averses possibles sur le créneau — pensez au coupe-vent.</div>` : ''; }
+function rainNote(w){ return (w && w.precipMax>=0.3) ? `<div class="drain">☔ Risque d'averses pendant ce créneau — glissez le coupe-vent dans le sac.</div>` : ''; }
+function nextLine(w){
+  if(!w) return '';
+  const sd = dayKey(w.start)===dayKey(Date.now());
+  const dayTxt = sd ? '' : cap(fmtDayShort.format(new Date(w.start)))+' ';
+  return `<div class="dnext">🔜 Et ensuite : <b>${dayTxt}${hmFr(w.start)}–${hmFr(w.end)}</b></div>`;
+}
 function renderDeparture(){
   const act=currentAct, m=META[act], now=Date.now();
   const card=document.getElementById('departCard'); if(!card) return;
   const body=document.getElementById('departBody'); if(!body) return;
   card.style.setProperty('--ac', m.color); card.classList.remove('none');
   const head=`<div class="dhead">${svgTag(ICON[m.icon])} ${m.short}</div>`;
-  const fine=`<div class="dfine">Trajet ${cfg.travelMin}${NB}min (réglable) · horaires à ±15–20 min près · au moins 20 min d'eau à l'arrivée</div>`;
+  const fine=`<div class="dfine">Trajet ${cfg.travelMin}${NB}min (<span class="reglink" role="button" tabindex="0">réglable</span>) · horaires à ±15–20 min près · au moins 20 min d'eau à l'arrivée</div>`;
   if(!inRange(now)){ card.classList.add('none');
     body.innerHTML=head+`<div class="verdict no">Version à mettre à jour</div>`
       +`<div class="big"><span class="time">—</span></div>`
@@ -911,30 +922,33 @@ function renderDeparture(){
   const wins=windows(act, now-6*3600e3, now+10*864e5);
   const ongoing=wins.find(w=>w.start<=now && w.end>now);
   const upcoming=wins.find(w=>w.start>now);
+  const fut=wins.filter(w=>w.start>now);
   let html;
   if(ongoing){
     const remain=ongoing.end-now;
     const lastLeave=ongoing.end-travel-MIN_USE; const canStill=lastLeave>now+60000;
     html=head
-      +`<div class="verdict ok">✓ C'est le moment</div>`
-      +`<div class="big"><span class="time">${fmtDur(remain)}</span><span class="cd">encore à l'eau</span></div>`
+      +`<div class="verdict ok">✓ ${m.gearNow}</div>`
+      +`<div class="dbiglbl">Encore à l'eau</div>`
+      +`<div class="big"><span class="time">${fmtDur(remain)}</span></div>`
       +`<div class="dline">Il y a assez d'eau — ${endCause(ongoing)}.${canStill?` Vous pouvez encore partir de chez vous jusqu'à <b>${hmFr(round5(lastLeave))}</b>.`:' Trop juste pour partir de chez vous — c\'est pour ceux qui sont déjà sur place.'}</div>`
-      +stats(ongoing,m)+rainNote(ongoing)+fine;
+      +stats(ongoing,m)+rainNote(ongoing)+nextLine(fut[0])+fine;
   } else if(upcoming){
     const dep=round5(upcoming.start-travel);
     const sameDay=dayKey(dep)===dayKey(now);
     const wait=dep-now;
     const when = dep<=now ? 'partez maintenant' : (sameDay ? rel(dep-now) : cap(fmtDayShort.format(new Date(dep))));
-    let vcls='soon', vlabel;
+    let vcls='soon', vlabel, biglbl='Départ';
     if(dep<=now){ vcls='ok'; vlabel='✓ Partez maintenant'; }
-    else if(wait < 3600e3) vlabel='Bientôt possible';
+    else if(wait < 3600e3) vlabel='Bientôt — préparez les affaires';
     else if(sameDay) vlabel='Plus tard aujourd\'hui';
-    else vlabel='À prévoir';
+    else { vcls='no'; vlabel='Pas aujourd\'hui'; biglbl='Prochain départ'; }
     html=head
       +`<div class="verdict ${vcls}">${vlabel}</div>`
+      +`<div class="dbiglbl">${biglbl}</div>`
       +`<div class="big"><span class="time">${dep<=now?'Maintenant':hmFr(dep)}</span><span class="cd">${when}</span></div>`
       +`<div class="dline">${dep<=now?'Partez':'Partez de chez vous'} pour arriver ${startCause(upcoming)}.</div>`
-      +stats(upcoming,m)+rainNote(upcoming)+fine;
+      +stats(upcoming,m)+rainNote(upcoming)+nextLine(fut[1])+fine;
   } else {
     card.classList.add('none');
     const windGap = m.wind && (windError || !WIND);
@@ -1165,6 +1179,7 @@ function renderAll(){
 }
 function setAct(act){
   currentAct=act;
+  try{ localStorage.setItem(LS_ACT, act); }catch(e){}
   document.querySelectorAll('#seg button, #segTen button').forEach(x=>x.setAttribute('aria-checked', x.dataset.act===act));
   renderWind(); renderMarine(); renderDeparture(); renderChart();
   if(!document.getElementById('view-tendays').hidden) renderTenDays();
@@ -1236,6 +1251,14 @@ function init(){
     const open=inf.hasAttribute('hidden'); if(open) inf.removeAttribute('hidden'); else inf.setAttribute('hidden',''); w.setAttribute('aria-expanded',open?'true':'false'); };
   document.getElementById('coefWrap').addEventListener('click',showCoef);
   document.getElementById('coefWrap').addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();showCoef();} });
+
+  // « réglable » → ouvre les Réglages
+  const openReglages=()=>{ const d=document.querySelector('.set'); if(d){ d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'}); } };
+  document.getElementById('departCard').addEventListener('click',e=>{ if(e.target.closest('.reglink')) openReglages(); });
+  document.getElementById('departCard').addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.closest('.reglink')){ e.preventDefault(); openReglages(); } });
+
+  // activité mémorisée d'une visite à l'autre
+  try{ const a=localStorage.getItem(LS_ACT); if(a&&META[a]){ currentAct=a; document.querySelectorAll('#seg button, #segTen button').forEach(x=>x.setAttribute('aria-checked', x.dataset.act===a)); } }catch(e){}
 
   renderAll();
   loadWind();
