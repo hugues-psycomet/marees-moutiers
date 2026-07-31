@@ -90,6 +90,13 @@ header.app .hright{position:relative; z-index:2; display:flex; flex-direction:co
 .depart .verdict.no{color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line)}
 .depart .dline{font-size:0.86rem; color:var(--ink-2); margin-top:0.5rem; line-height:1.45}
 .depart .dline b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+.depart .big.win .time{font-size:2.35rem; white-space:nowrap}
+.depart .big.win .tod{font-size:0.6em; margin-right:0.1em; vertical-align:0.12em}
+.depart .big.win .wd{margin:0 0.14em; color:var(--ink-2); font-weight:600}
+.depart .dsub{font-size:0.9rem; color:var(--ink-2); margin-top:0.45rem; line-height:1.45}
+.depart .dsub b{color:var(--ink); font-weight:750; font-variant-numeric:tabular-nums}
+.depart .dgo{font-size:0.85rem; color:var(--ink-2); margin-top:0.8rem; padding:0.6rem 0.72rem; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; line-height:1.45}
+.depart .dgo b{color:var(--ink); font-weight:750; font-variant-numeric:tabular-nums}
 .depart .dstats{display:grid; grid-template-columns:repeat(3,1fr); gap:0.55rem; margin-top:0.9rem}
 .depart .dstats.two{grid-template-columns:repeat(2,1fr)}
 .depart .dstats.one{grid-template-columns:1fr}
@@ -103,6 +110,34 @@ header.app .hright{position:relative; z-index:2; display:flex; flex-direction:co
 .depart .drain{font-size:0.82rem; color:var(--ink-2); margin-top:0.7rem; padding:0.5rem 0.7rem; border-radius:10px; background:var(--surface-2); border:1px solid var(--line)}
 .depart .dfine{font-size:0.73rem; color:var(--muted); margin-top:0.75rem}
 .depart.none .big .time{font-size:1.5rem; color:var(--ink)}
+
+/* indicateur de conditions — panneau teinté selon le niveau */
+.cond{margin-top:0.9rem; border-radius:15px; padding:0.8rem 0.9rem; border:1px solid var(--line); background:var(--surface-2)}
+.cond.lv-ideal{background:linear-gradient(150deg,#eaf7f0,#e2f4ec); border-color:#c8e8d8}
+.cond.lv-bien{background:linear-gradient(150deg,#f2f7e4,#edf4dc); border-color:#dcecbf}
+.cond.lv-moyen{background:linear-gradient(150deg,#fdf3df,#fbeed2); border-color:#eeddb2}
+.cond.lv-eviter{background:linear-gradient(150deg,#fdece5,#fce2da); border-color:#f0cdc3}
+.cond.lv-none{background:var(--surface-2); border-color:var(--line)}
+:root[data-theme="dark"] .cond.lv-ideal{background:linear-gradient(150deg,#0e2a21,#10251e); border-color:#1e4736}
+:root[data-theme="dark"] .cond.lv-bien{background:linear-gradient(150deg,#212c10,#1d270f); border-color:#39471d}
+:root[data-theme="dark"] .cond.lv-moyen{background:linear-gradient(150deg,#2c2410,#28200d); border-color:#4a3c17}
+:root[data-theme="dark"] .cond.lv-eviter{background:linear-gradient(150deg,#301b17,#2b1815); border-color:#4d2b23}
+.cond-head{display:flex; align-items:baseline; gap:0.5rem; flex-wrap:wrap}
+.cond-grade{font-size:0.98rem; font-weight:850; letter-spacing:.005em; display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap}
+.cond-grade:before{content:""; width:0.72rem; height:0.72rem; border-radius:3.5px; background:currentColor; box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.cond.lv-ideal .cond-grade{color:#0a6b45} .cond.lv-bien .cond-grade{color:#5a7d16}
+.cond.lv-moyen .cond-grade{color:var(--warn)} .cond.lv-eviter .cond-grade{color:var(--bad)}
+.cond.lv-none .cond-grade{color:var(--ink-2)}
+:root[data-theme="dark"] .cond.lv-ideal .cond-grade{color:#63d3a6} :root[data-theme="dark"] .cond.lv-bien .cond-grade{color:#b6d873}
+.cond-phrase{font-size:0.84rem; color:var(--ink); font-weight:600}
+.cond-chips{display:flex; flex-wrap:wrap; gap:0.45rem; margin-top:0.7rem}
+.cc{font:inherit; font-size:0.79rem; font-weight:650; border:1px solid var(--line); border-radius:999px; padding:0.34rem 0.75rem 0.34rem 0.6rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.42rem; background:var(--surface); color:var(--ink); min-height:36px; transition:transform .08s,border-color .12s,box-shadow .12s}
+.cc:active{transform:scale(.96)}
+.cc-dot{width:0.55rem; height:0.55rem; border-radius:50%; flex:none}
+.s-good{background:var(--good)} .s-warn{background:var(--warn)} .s-bad{background:var(--bad)}
+.cc-active{border-color:var(--ac); box-shadow:0 2px 8px rgba(10,85,104,.14)}
+.cond-detail{font-size:0.82rem; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:0.6rem 0.75rem; margin-top:0.6rem; line-height:1.5}
+.cond-fine{font-size:0.71rem; color:var(--muted); margin-top:0.6rem; line-height:1.4}
 
 /* now */
 .now-top{display:flex; align-items:center; justify-content:space-between; gap:0.75rem}
@@ -691,7 +726,7 @@ async function loadMarine(){
       .filter(w=>Number.isFinite(w.t)&&Number.isFinite(w.sst));
     if(!MARINE.length) MARINE=null;
   }catch(e){ if(gen!==marineGen) return; }  // on garde la dernière température connue
-  renderConditions(); renderMarine();
+  renderConditions(); renderMarine(); renderDeparture();
 }
 function marineAt(ms){
   if(!MARINE||!MARINE.length) return null;
@@ -762,7 +797,7 @@ function windows(act, from, to, stepMin=10){
     if(e.ok){ if(!cur) cur={start:ms,hmax:e.h,wmin:1e9,wmax:-1e9,precipMax:0,windKnown:true,startRising:e.rising,startReason:prevReason,_wsPeak:-1,wdPeak:null};
       cur.hmax=Math.max(cur.hmax,e.h); cur.end=ms;
       if(e.wind){cur.wmin=Math.min(cur.wmin,e.wind.ws); cur.wmax=Math.max(cur.wmax,e.wind.ws);
-        if(e.wind.ws>cur._wsPeak){ cur._wsPeak=e.wind.ws; cur.wdPeak=e.wind.wd; }}
+        if(e.wind.ws>cur._wsPeak){ cur._wsPeak=e.wind.ws; cur.wsPeak=e.wind.ws; cur.wdPeak=e.wind.wd; cur.wgPeak=e.wind.wg; }}
       const wp=windAt(ms); if(wp&&Number.isFinite(wp.precip)) cur.precipMax=Math.max(cur.precipMax, wp.precip);
       if(META[act].wind && !e.windKnown) cur.windKnown=false;
     } else { if(cur){ cur.endReason=e.reason; out.push(cur); cur=null; } prevReason=e.reason; } }
@@ -933,8 +968,112 @@ function nextLine(w){
   if(!w) return '';
   const sd = dayKey(w.start)===dayKey(Date.now());
   const dayTxt = sd ? '' : cap(fmtDayShort.format(new Date(w.start)))+' ';
-  return `<div class="dnext">🔜 Et ensuite : <b>${dayTxt}${hmFr(w.start)}–${hmFr(w.end)}</b></div>`;
+  return `<div class="dnext">🔜 Et ensuite : <b>${dayTxt}${todGlyph(w.start)} ${hmFr(w.start)}–${todGlyph(w.end)} ${hmFr(w.end)}</b></div>`;
 }
+
+// ---------- indicateur de conditions (façon nutri-score) ----------
+const GLYPH={mer:'🌊', eau:'🌡️', pluie:'🌧️', vent:'💨', dir:'🧭', raf:'⚡'};
+const LV={ideal:{t:'Idéal',c:'lv-ideal'}, bien:{t:'Bien',c:'lv-bien'}, moyen:{t:'Moyen',c:'lv-moyen'}, eviter:{t:'À éviter',c:'lv-eviter'}};
+const _RANK={good:1,warn:2,bad:3};
+function worstState(){ let r=0,out=null; for(const s of arguments){ if(s==null) continue; if(_RANK[s]>r){r=_RANK[s]; out=s;} } return out; }
+function fmtM(x){ return (Math.round(x*10)/10).toFixed(1).replace('.',','); }
+function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// échantillonne la fenêtre heure par heure : vagues, vent, rafales, pluie ; eau au milieu
+function condSample(w){
+  const step=3600e3;
+  let whMax=-1, wpAtMax=null, windMax=-1, wsPeak=-1, wgAtPeak=null, precipMax=0, anyWind=false, anyMarine=false;
+  for(let ms=w.start; ms<=w.end+1; ms+=step){
+    const wd=windAt(ms);
+    if(wd){ anyWind=true;
+      if(Number.isFinite(wd.ws)){ if(wd.ws>windMax) windMax=wd.ws; if(wd.ws>wsPeak){ wsPeak=wd.ws; wgAtPeak=wd.wg; } }
+      if(Number.isFinite(wd.precip)&&wd.precip>precipMax) precipMax=wd.precip;
+    }
+    const mm=marineAt(ms);
+    if(mm){ anyMarine=true; if(Number.isFinite(mm.wh)&&mm.wh>whMax){ whMax=mm.wh; wpAtMax=Number.isFinite(mm.wp)?mm.wp:null; } }
+  }
+  const sstMid=sstAt((w.start+w.end)/2);
+  return { whMax: whMax>=0?whMax:null, wp:wpAtMax, sst: (sstMid!=null&&Number.isFinite(sstMid))?sstMid:null,
+           windMax: windMax>=0?windMax:null, gustRatio:(wsPeak>0&&Number.isFinite(wgAtPeak))?wgAtPeak/wsPeak:null,
+           precipMax, anyWind, anyMarine };
+}
+function waveState(wh, wp){
+  if(wh==null) return null;
+  let st = wh<=0.3?'good':(wh>0.6?'bad':'warn');
+  if(wp!=null && wp>=8){ st = st==='good'?'warn':(st==='warn'?'bad':st); } // houle longue = plus formée
+  return st;
+}
+// construit les 3 facteurs + le niveau global (règle du pire)
+function condGrade(act, w, cs){
+  const m=META[act]; const F=[];
+  if(!m.wind){
+    // Mer = pire de (vagues, vent) — au spot, les vagues sont surtout levées par le vent
+    const ws=waveState(cs.whMax, cs.wp);
+    const wi=cs.windMax==null?null:(cs.windMax<=20?'good':(cs.windMax>35?'bad':'warn'));
+    const mer=worstState(ws,wi);
+    let merD;
+    if(cs.whMax==null&&cs.windMax==null) merD='Mer : données marines indisponibles pour ce créneau.';
+    else{ merD='Mer : '; const bits=[];
+      if(cs.whMax!=null) bits.push('vagues ≈ '+fmtM(cs.whMax)+' m'+(cs.wp!=null?' (période '+Math.round(cs.wp)+' s)':''));
+      if(cs.windMax!=null) bits.push('vent jusqu’à '+Math.round(cs.windMax)+' km/h');
+      merD+=bits.join(' · ')+'.'; merD+= mer==='good'?' Mer belle.':(mer==='bad'?' Mer agitée.':' Un peu de clapot.'); }
+    F.push({key:'mer',label:'Mer',glyph:GLYPH.mer,state:mer,detail:merD,
+      phrase: mer==='bad'?'Mer agitée':'Un peu de clapot'});
+    const eau=cs.sst==null?null:(cs.sst>=18?'good':(cs.sst<15?'bad':'warn'));
+    F.push({key:'eau',label:'Eau',glyph:GLYPH.eau,state:eau,
+      detail:'Eau : '+(cs.sst==null?'température non disponible.':Math.round(cs.sst)+' °C'+(cs.sst>=18?' — bonne pour se baigner.':(cs.sst<15?' — fraîche, combinaison conseillée.':' — un peu fraîche.'))),
+      phrase: eau==='bad'?'Eau froide':'Eau un peu fraîche'});
+    const pl=!cs.anyWind?null:(cs.precipMax<0.2?'good':(cs.precipMax>1?'bad':'warn'));
+    F.push({key:'pluie',label:'Ciel',glyph:GLYPH.pluie,state:pl,
+      detail:'Ciel : '+(!cs.anyWind?'prévision de pluie non disponible.':(cs.precipMax<0.2?'temps sec attendu.':'averses possibles (jusqu’à '+fmtM(cs.precipMax)+' mm/h).')),
+      phrase: pl==='bad'?'Averses probables':'Risque d’ondées'});
+  } else {
+    const c=cfg[act]; let vent, ventD;
+    if(!w.windKnown || w.wmax<=-1e9){ vent=null; ventD='Vent : '+(WIND?'pas encore prévu pour ce créneau.':'hors ligne — vent non vérifié.'); }
+    else{ const band=(c.wmax-c.wmin)||1, wmid=(w.wmin+w.wmax)/2,
+        loGood=c.wmin+(act==='planche'?0.45:0.35)*band, hiGood=c.wmax-0.05*band;
+      vent=(wmid>=loGood&&wmid<=hiGood)?'good':'warn';
+      ventD='Vent : '+kn(w.wmin)+'–'+kn(w.wmax)+' nds'+(vent==='good'?' — pile dans le bon créneau.':' — jouable, un peu hors du cœur de plage.'); }
+    F.push({key:'vent',label:'Vent',glyph:GLYPH.vent,state:vent,detail:ventD,phrase:'Vent un peu juste'});
+    const wd=w.wdPeak;
+    const dir=wd==null?null:((wd>=60&&wd<=130)?'bad':(((wd>=40&&wd<60)||(wd>130&&wd<=150))?'warn':'good'));
+    F.push({key:'dir',label:'Direction',glyph:GLYPH.dir,state:dir,
+      detail:'Direction : vent de '+(wd==null?'?':dirTxt(wd))+(dir==='bad'?' — de terre (offshore) : risque d’être déporté au large, prudence.':(dir==='warn'?' — un peu orienté terre.':' — bien orienté pour le plan d’eau.')),
+      phrase: dir==='bad'?'Vent de terre':'Direction moyenne'});
+    const gr=cs.gustRatio, thr=act==='planche'?[1.6,2.0]:[1.5,1.8];
+    const raf=gr==null?null:(gr<thr[0]?'good':(gr>thr[1]?'bad':'warn'));
+    F.push({key:'raf',label:'Rafales',glyph:GLYPH.raf,state:raf,
+      detail:'Rafales : '+(gr==null?'non disponibles.':'écart vent/rafales ×'+(Math.round(gr*10)/10).toString().replace('.',',')+(raf==='good'?' — vent régulier.':(raf==='bad'?' — vent en rafales, ça décoiffe.':' — quelques rafales.'))),
+      phrase: raf==='bad'?'Vent en rafales':'Quelques rafales'});
+  }
+  const states=F.map(f=>f.state);
+  let level;
+  if(states.some(s=>s==null)) level=null;
+  else if(states.includes('bad')) level='eviter';
+  else{ const n=states.filter(s=>s==='warn').length; level=n>=2?'moyen':(n===1?'bien':'ideal'); }
+  let phrase;
+  if(level==null) phrase='Créneau d’après la marée ; météo mer incomplète.';
+  else if(level==='ideal') phrase=m.wind?'Conditions au top pour naviguer.':'Belle mer, eau agréable, ciel clément.';
+  else{ const wf=F.find(f=>f.state==='bad')||F.find(f=>f.state==='warn'); phrase=wf?wf.phrase+'.':''; }
+  return {level, phrase, factors:F};
+}
+function condBlock(act, w){
+  const cs=condSample(w); const g=condGrade(act, w, cs);
+  const lv = g.level==null ? 'none' : g.level;
+  const word = g.level==null ? 'Marée seule' : LV[g.level].t;
+  const chips=g.factors.filter(f=>f.state!=null).map(f=>
+    `<button type="button" class="cc" data-cd="${escAttr(f.detail)}"><span class="cc-dot s-${f.state}"></span>${f.label}</button>`).join('');
+  return `<div class="cond lv-${lv}">`
+    +`<div class="cond-head"><span class="cond-grade">${word}</span><span class="cond-phrase">${g.phrase}</span></div>`
+    +(chips?`<div class="cond-chips">${chips}</div>`:'')
+    +`<div class="cond-detail" id="condDetail" hidden></div>`
+    +`<div class="cond-fine">Indicatif — pas un avis de sécurité, à croiser avec la météo marine.</div>`
+    +`</div>`;
+}
+// pictos moment de la journée (évidence cognitive) — matin / après-midi / soirée
+function todGlyph(ms){ const h=localHour(ms); return h<10?'🌅':(h<17?'☀️':'🌇'); }
+function todLabel(ms){ const h=localHour(ms); return h<10?'matin':(h<17?'après-midi':'soirée'); }
+function momentSpan(a,b){ const la=todLabel(a), lb=todLabel(b); return la===lb?cap(la):cap(la)+' → '+lb; }
+function winHero(w){ return `<span class="tod">${todGlyph(w.start)}</span>${hmFr(w.start)}<span class="wd">–</span><span class="tod">${todGlyph(w.end)}</span>${hmFr(w.end)}`; }
 function renderDeparture(){
   const act=currentAct, m=META[act], now=Date.now();
   const card=document.getElementById('departCard'); if(!card) return;
@@ -959,29 +1098,43 @@ function renderDeparture(){
   if(ongoing){
     const remain=ongoing.end-now;
     const lastLeave=ongoing.end-lead-MIN_USE; const canStill=lastLeave>now+60000;
+    const endTxt = ongoing.endReason==='night'?'la nuit tombe':(ongoing.endReason==='windLow'?'le vent faiblit':(ongoing.endReason==='windHigh'?'le vent forcit':'la mer redescend'));
+    const goTxt = canStill
+      ? `🚶 Encore le temps d'y aller : partez de chez vous jusqu'à <b>${hmFr(round5(lastLeave))}</b>.`
+      : `🚶 Trop juste pour partir maintenant — c'est pour ceux déjà sur place.`;
     html=head
       +`<div class="verdict ok">✓ ${m.gearNow}</div>`
-      +`<div class="dbiglbl">Encore à l'eau</div>`
-      +`<div class="big"><span class="time">${fmtDur(remain)}</span></div>`
-      +`<div class="dline">Il y a assez d'eau — ${endCause(ongoing)}.${canStill?` Vous pouvez encore partir de chez vous jusqu'à <b>${hmFr(round5(lastLeave))}</b>.`:' Trop juste pour partir de chez vous — c\'est pour ceux qui sont déjà sur place.'}</div>`
-      +stats(ongoing,m)+rainNote(ongoing)+nextLine(fut[0])+fine;
+      +`<div class="dbiglbl">Assez d'eau en ce moment</div>`
+      +`<div class="big win"><span class="time">${winHero(ongoing)}</span></div>`
+      +`<div class="dsub">C'est ouvert — <b>encore ${fmtDur(remain)}</b> avant que ${endTxt}.</div>`
+      +condBlock(act,ongoing)
+      +`<div class="dgo">${goTxt}</div>`
+      +rainNote(ongoing)+nextLine(fut[0])+fine;
   } else if(upcoming){
     const dep=round5(upcoming.start-lead);
-    const sameDay=dayKey(dep)===dayKey(now);
+    const sameDay=dayKey(upcoming.start)===dayKey(now);
     const wait=dep-now;
-    const when = dep<=now ? 'partez maintenant' : (sameDay ? rel(dep-now) : cap(fmtDayShort.format(new Date(dep))));
-    let vcls='soon', vlabel, biglbl='Départ';
-    if(dep<=now){ vcls='ok'; vlabel='✓ Partez maintenant'; }
-    else if(wait < 3600e3) vlabel='Bientôt — préparez les affaires';
+    let vcls='soon', vlabel, biglbl=sameDay?'Assez d\'eau':'Prochain créneau';
+    if(dep<=now){ vcls='ok'; vlabel='✓ Praticable maintenant'; }
+    else if(wait < 3600e3) vlabel='Bientôt';
     else if(sameDay) vlabel='Plus tard aujourd\'hui';
-    else { vcls='no'; vlabel='Pas aujourd\'hui'; biglbl='Prochain départ'; }
-    const arrivePhrase = m.wind ? 'pour arriver, gréer et être à l\'eau ' : 'pour arriver ';
+    else { vcls='no'; vlabel='Pas aujourd\'hui'; }
+    const dp = sameDay ? '' : cap(fmtDayShort.format(new Date(upcoming.start)))+' ';
+    let sub = `${momentSpan(upcoming.start,upcoming.end)} · <b>${fmtDur(upcoming.end-upcoming.start)}</b> ${m.wind?'sur l\'eau':'d\'eau à la plage'}`;
+    if(m.wind && upcoming.windKnown && upcoming.wmax>-1e9) sub += ` · vent <b>${kn(upcoming.wmin)}–${kn(upcoming.wmax)}</b> nds`;
+    const arrivePhrase = m.wind ? 'pour arriver, gréer et être à l\'eau dès le début' : 'pour être à l\'eau dès le début';
+    let goTxt;
+    if(dep<=now) goTxt=`🚶 Partez maintenant ${arrivePhrase}.`;
+    else if(sameDay) goTxt=`🚶 Partez vers <b>${hmFr(dep)}</b> (${rel(dep-now)}) ${arrivePhrase}.`;
+    else goTxt=`🚶 Le jour venu, partez vers <b>${hmFr(dep)}</b> ${arrivePhrase}.`;
     html=head
       +`<div class="verdict ${vcls}">${vlabel}</div>`
       +`<div class="dbiglbl">${biglbl}</div>`
-      +`<div class="big"><span class="time">${dep<=now?'Maintenant':hmFr(dep)}</span><span class="cd">${when}</span></div>`
-      +`<div class="dline">${dep<=now?'Partez':'Partez de chez vous'} ${arrivePhrase}${startCause(upcoming)}.</div>`
-      +stats(upcoming,m)+rainNote(upcoming)+nextLine(fut[1])+fine;
+      +`<div class="big win"><span class="time">${dp}${winHero(upcoming)}</span></div>`
+      +`<div class="dsub">${sub}.</div>`
+      +condBlock(act,upcoming)
+      +`<div class="dgo">${goTxt}</div>`
+      +rainNote(upcoming)+nextLine(fut[1])+fine;
   } else {
     card.classList.add('none');
     const windGap = m.wind && (windError || !WIND);
@@ -1306,7 +1459,15 @@ function init(){
 
   // « réglable » → ouvre les Réglages
   const openReglages=()=>{ const d=document.querySelector('.set'); if(d){ d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'}); } };
-  document.getElementById('departCard').addEventListener('click',e=>{ if(e.target.closest('.reglink')) openReglages(); });
+  document.getElementById('departCard').addEventListener('click',e=>{
+    if(e.target.closest('.reglink')){ openReglages(); return; }
+    const chip=e.target.closest('.cc'); if(!chip) return;
+    const det=document.getElementById('condDetail'); if(!det) return;
+    const wasActive=chip.classList.contains('cc-active');
+    document.querySelectorAll('#departCard .cc').forEach(c=>c.classList.remove('cc-active'));
+    if(wasActive){ det.hidden=true; det.textContent=''; }
+    else{ chip.classList.add('cc-active'); det.textContent=chip.getAttribute('data-cd'); det.hidden=false; }
+  });
   document.getElementById('departCard').addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.closest('.reglink')){ e.preventDefault(); openReglages(); } });
 
   // activité mémorisée d'une visite à l'autre
