@@ -142,6 +142,7 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .chartlegend2 .lg-zone{width:15px; height:11px; border-radius:3px; background:var(--ac); opacity:.18}
 .chartlegend2 .lg-thr{width:16px; height:0; border-top:2px dashed var(--ac); align-self:center}
 .condstrip{margin-top:0.9rem}
+.uvdot{display:inline-block; width:0.62rem; height:0.62rem; border-radius:50%; margin-right:0.32rem; vertical-align:middle; background:var(--muted)}
 .depart .pratique{margin-top:1rem; border-top:1px dashed var(--line); padding-top:0.85rem}
 .depart .pratique .pratique-sep{font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--ac); margin-bottom:0.6rem}
 .depart .pratique .condstrip{margin-top:0}
@@ -165,6 +166,7 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .dcard{background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:0.8rem 0.85rem; margin-bottom:0.7rem}
 .dcard .dtop{display:flex; align-items:center; justify-content:space-between; gap:0.6rem}
 .dcard .dname{font-weight:800; font-size:0.95rem}
+.dcard .webadge{font-size:0.68rem; font-weight:700; color:var(--baignade); background:var(--baignade-soft); border-radius:999px; padding:0.1rem 0.45rem; margin-left:0.45rem; white-space:nowrap; vertical-align:middle}
 .dcard .cbadge{display:inline-flex; align-items:baseline; gap:0.35rem; font-weight:700; padding:0.28rem 0.65rem; border-radius:999px; font-size:0.78rem; border:1px solid transparent}
 .dcard .cbadge b{font-size:1.05rem; font-variant-numeric:tabular-nums}
 .dcard .cbar{height:6px; border-radius:4px; background:var(--surface-2); margin:0.55rem 0 0.65rem; overflow:hidden}
@@ -307,7 +309,7 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
       <div class="windgrid condstrip">
         <div class="w"><div class="v" id="wTemp">–</div><div class="k">air °C</div></div>
         <div class="w"><div class="v" id="wWater">–</div><div class="k">eau °C</div></div>
-        <div class="w"><div class="v" id="wUV">–</div><div class="k">indice UV</div></div>
+        <div class="w"><div class="v"><span class="uvdot" id="wUVdot"></span><span id="wUV">–</span></div><div class="k">indice UV</div></div>
       </div>
       <div class="uvnote" id="uvNote"></div>
     </div>
@@ -831,6 +833,7 @@ function renderNowExplain(t, c, now){
 }
 
 function uvLabel(u){ if(u<3) return 'faible'; if(u<6) return 'modéré'; if(u<8) return 'élevé'; if(u<11) return 'très élevé'; return 'extrême'; }
+function uvColor(u){ if(u==null) return 'var(--muted)'; if(u<3) return '#3aa76d'; if(u<6) return '#e0b000'; if(u<8) return '#e8791f'; if(u<11) return '#d64533'; return '#8a3ffc'; }
 function renderUVNote(uv){
   const note=document.getElementById('uvNote'); if(!note) return;
   if(uv==null || uv<1 || !isDaylight(Date.now())){ note.className='uvnote'; note.textContent=''; return; }
@@ -847,8 +850,10 @@ function renderConditions(){
   const s=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   s('wTemp', w?Math.round(w.temp):'–');
   s('wWater', sst!=null?Math.round(sst):'–');
-  s('wUV', (w&&w.uv!=null)?Math.round(w.uv):'–');
-  renderUVNote(w&&w.uv!=null?w.uv:null);
+  const uvNow = (w&&w.uv!=null)?w.uv:null;
+  s('wUV', uvNow!=null?Math.round(uvNow):'–');
+  const dot=document.getElementById('wUVdot'); if(dot) dot.style.background=uvColor(uvNow);
+  renderUVNote(uvNow);
 }
 function renderWind(){
   const now=Date.now(); const w=windAt(now);
@@ -858,13 +863,25 @@ function renderWind(){
   s('wSpeedUnit', knots?'vent nœuds':'vent km/h');
   s('wGustUnit', knots?'rafales nds':'rafales');
   if(!w){ s('wSpeed','–');s('wGust','–');s('wDirTxt','–'); s('windKnots','');
+    const sp0=document.getElementById('wSpeed'); if(sp0) sp0.style.color='';
     if(upd) upd.textContent = windError?'Hors ligne — dernier essai échoué.':(WIND?'Prévision indisponible pour cette heure.':'');
     renderConditions(); return; }
   s('wSpeed', knots?kn(w.ws):Math.round(w.ws)); s('wGust', knots?kn(w.wg):Math.round(w.wg)); s('wDirTxt',dirTxt(w.wd));
   const arrow=document.getElementById('wArrow'); if(arrow) arrow.style.transform=`rotate(${w.wd+180}deg)`;
   if(upd) upd.textContent = (windUpdated?('Mis à jour à '+hmFr(windUpdated)):'') + (windError?' · actualisation impossible':'');
-  const kel=document.getElementById('windKnots');
-  if(kel) kel.innerHTML = knots ? '' : `Soit ≈ <b>${kn(w.ws)}</b> nœuds · rafales ≈ <b>${kn(w.wg)}</b> nds`;
+  // vent teinté selon la plage perso (voile/planche)
+  const spEl=document.getElementById('wSpeed'), kel=document.getElementById('windKnots');
+  if(knots){
+    const c=cfg[currentAct]; let col, txt;
+    if(w.ws<c.wmin){ col='var(--warn)'; txt='trop faible pour l\'instant'; }
+    else if(w.ws>c.wmax){ col='var(--bad)'; txt='trop fort pour l\'instant'; }
+    else { col='var(--good)'; txt='dans votre plage'; }
+    if(spEl) spEl.style.color=col;
+    if(kel){ kel.innerHTML=`<b style="color:${col}">${txt}</b> (seuils ${kn(c.wmin)}–${kn(c.wmax)} nds)`; }
+  } else {
+    if(spEl) spEl.style.color='';
+    if(kel) kel.innerHTML = `Soit ≈ <b>${kn(w.ws)}</b> nœuds · rafales ≈ <b>${kn(w.wg)}</b> nds`;
+  }
   renderConditions();
 }
 
@@ -1043,6 +1060,8 @@ function renderTenDays(){
     const coefs=evs.map(e=>e.coef).filter(x=>x!=null); const cmax=coefs.length?Math.max(...coefs):null;
     const cc=coefColors(cmax), lab=coefLabel(cmax), barW=cmax!=null?Math.max(4,Math.min(100,(cmax-20)/100*100)):0;
     const dname=cap(fmtDay.format(new Date(evs[0].t)));
+    const wd=new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short'}).format(new Date(evs[0].t));
+    const weBadge=(wd==='Sat'||wd==='Sun')?'<span class="webadge">🏖️ week-end</span>':'';
     const fmtEv=e=>`${hmFr(e.t)} <span style="color:var(--muted)">${mM(e.h)}</span>`;
     const todayW=wins.filter(w=>dayKey(w.start)===k && w.end>now);
     let slots;
@@ -1057,7 +1076,7 @@ function renderTenDays(){
       slots=`<div class="dnone">${svgTag(ICON[m.icon])} Pas de créneau ${m.short.toLowerCase()} ce jour</div>`;
     }
     html+=`<div class="dcard" style="--ac:${m.color}">
-      <div class="dtop"><span class="dname">${dname}</span>
+      <div class="dtop"><span class="dname">${dname}${weBadge}</span>
         <span class="cbadge" style="color:${cc.fg};background:${cc.bg}">coef <b>${cmax??'–'}</b> · ${lab}</span></div>
       <div class="cbar"><i style="width:${barW}%;background:${barColor(cmax)}"></i></div>
       <div class="dtides">
