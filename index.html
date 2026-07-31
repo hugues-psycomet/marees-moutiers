@@ -166,7 +166,7 @@ header.app .hright{position:relative; z-index:2; display:flex; flex-direction:co
 
 /* chart */
 .chartwrap{position:relative}
-svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
+svg.chart{width:100%; height:auto; display:block; touch-action:pan-y; -webkit-user-select:none; user-select:none; cursor:crosshair}
 .readout{position:absolute; top:6px; left:6px; font-size:0.78rem; background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:0.3rem 0.55rem; font-variant-numeric:tabular-nums; pointer-events:none; box-shadow:var(--shadow); opacity:0; transition:opacity .1s}
 .charthelp{font-size:0.83rem; color:var(--ink-2); line-height:1.5; margin:0 0 0.75rem}
 .charthelp b{color:var(--ink); font-weight:700}
@@ -176,6 +176,7 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .chartlegend2 .lg-now{width:10px; height:10px; border-radius:50%; background:var(--sea-deep)}
 .chartlegend2 .lg-zone{width:15px; height:11px; border-radius:3px; background:var(--ac); opacity:.18}
 .chartlegend2 .lg-thr{width:16px; height:0; border-top:2px dashed var(--ac); align-self:center}
+.chartlegend2 .lg-cross{width:9px; height:9px; border-radius:50%; background:var(--ac)}
 .condstrip{margin-top:0.9rem}
 .uvdot{display:inline-block; width:0.62rem; height:0.62rem; border-radius:50%; margin-right:0.32rem; vertical-align:middle; background:var(--muted)}
 .depart .pratique{margin-top:1rem; border-top:1px dashed var(--line); padding-top:0.85rem}
@@ -381,7 +382,7 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
   <!-- CHART -->
   <section class="card">
     <h2>Où en est la mer</h2>
-    <p class="charthelp">La courbe bleue, c'est la <b>hauteur d'eau</b> heure par heure. Elle <b>monte</b> quand la mer monte, elle <b>descend</b> quand la mer se retire. Le trait vertical, c'est <b>maintenant</b> ; touchez la courbe pour lire une heure précise.</p>
+    <p class="charthelp">La courbe bleue, c'est la <b>hauteur d'eau</b> heure par heure. Elle <b>monte</b> quand la mer monte, elle <b>descend</b> quand la mer se retire. Le trait vertical, c'est <b>maintenant</b> ; <b>glissez le doigt</b> le long de la courbe pour lire l'heure et la hauteur point par point.</p>
     <div class="chartwrap">
       <svg class="chart" id="chart" viewBox="0 0 360 210" preserveAspectRatio="none" aria-label="Courbe de marée sur 24 heures"></svg>
       <div class="readout" id="readout"></div>
@@ -390,6 +391,7 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
       <span><i class="lg-now"></i> maintenant</span>
       <span><i class="lg-zone"></i> assez d'eau pour <span id="legZoneAct">la baignade</span></span>
       <span><i class="lg-thr"></i> seuil « eau min »</span>
+      <span><i class="lg-cross"></i> heures d'assez d'eau</span>
     </div>
   </section>
 
@@ -1098,7 +1100,7 @@ function renderDeparture(){
   if(ongoing){
     const remain=ongoing.end-now;
     const lastLeave=ongoing.end-lead-MIN_USE; const canStill=lastLeave>now+60000;
-    const endTxt = ongoing.endReason==='night'?'la nuit tombe':(ongoing.endReason==='windLow'?'le vent faiblit':(ongoing.endReason==='windHigh'?'le vent forcit':'la mer redescend'));
+    const endTxt = ongoing.endReason==='night'?'la nuit tombe':(ongoing.endReason==='windLow'?'le vent faiblisse':(ongoing.endReason==='windHigh'?'le vent forcisse':'la mer redescende'));
     const goTxt = canStill
       ? `🚶 Encore le temps d'y aller : partez de chez vous jusqu'à <b>${hmFr(round5(lastLeave))}</b>.`
       : `🚶 Trop juste pour partir maintenant — c'est pour ceux déjà sur place.`;
@@ -1114,12 +1116,12 @@ function renderDeparture(){
     const dep=round5(upcoming.start-lead);
     const sameDay=dayKey(upcoming.start)===dayKey(now);
     const wait=dep-now;
-    let vcls='soon', vlabel, biglbl=sameDay?'Assez d\'eau':'Prochain créneau';
+    let vcls='soon', vlabel;
+    let biglbl = sameDay ? 'Assez d\'eau' : ('Prochain créneau · '+cap(fmtDayShort.format(new Date(upcoming.start))));
     if(dep<=now){ vcls='ok'; vlabel='✓ Praticable maintenant'; }
     else if(wait < 3600e3) vlabel='Bientôt';
     else if(sameDay) vlabel='Plus tard aujourd\'hui';
     else { vcls='no'; vlabel='Pas aujourd\'hui'; }
-    const dp = sameDay ? '' : cap(fmtDayShort.format(new Date(upcoming.start)))+' ';
     let sub = `${momentSpan(upcoming.start,upcoming.end)} · <b>${fmtDur(upcoming.end-upcoming.start)}</b> ${m.wind?'sur l\'eau':'d\'eau à la plage'}`;
     if(m.wind && upcoming.windKnown && upcoming.wmax>-1e9) sub += ` · vent <b>${kn(upcoming.wmin)}–${kn(upcoming.wmax)}</b> nds`;
     const arrivePhrase = m.wind ? 'pour arriver, gréer et être à l\'eau dès le début' : 'pour être à l\'eau dès le début';
@@ -1130,7 +1132,7 @@ function renderDeparture(){
     html=head
       +`<div class="verdict ${vcls}">${vlabel}</div>`
       +`<div class="dbiglbl">${biglbl}</div>`
-      +`<div class="big win"><span class="time">${dp}${winHero(upcoming)}</span></div>`
+      +`<div class="big win"><span class="time">${winHero(upcoming)}</span></div>`
       +`<div class="dsub">${sub}.</div>`
       +condBlock(act,upcoming)
       +`<div class="dgo">${goTxt}</div>`
@@ -1179,6 +1181,20 @@ function renderChart(){
   s+=`<line x1="${padL}" y1="${yThr}" x2="${W-padR}" y2="${yThr}" stroke="${m.color}" stroke-width="1.4" stroke-dasharray="4 3"/>`;
   s+=`<text x="${W-padR}" y="${yThr-4}" text-anchor="end" font-size="11" font-weight="700" fill="${m.color}">eau min ${thr.toString().replace('.',',')} m</text>`;
   s+=`<path d="${line}" fill="none" stroke="var(--sea)" stroke-width="2" stroke-linejoin="round"/>`;
+  // horaires des périodes d'assez d'eau : on marque où la courbe croise le seuil
+  const crossMs=(msA,msB)=>{ const hA=tideAt(msA).h, hB=tideAt(msB).h; if(hB===hA) return msB; const f=(thr-hA)/(hB-hA); return msA+(msB-msA)*Math.max(0,Math.min(1,f)); };
+  const waterWins=[]; { let cur=null, pm=t0, po=(tideAt(t0).h>=thr);
+    if(po) cur={start:t0, edgeStart:true};
+    const NN=288;
+    for(let k=1;k<=NN;k++){ const ms=t0+(t1-t0)*k/NN; const ok=tideAt(ms).h>=thr;
+      if(ok&&!po){ cur={start:crossMs(pm,ms)}; }
+      else if(!ok&&po){ cur.end=crossMs(pm,ms); waterWins.push(cur); cur=null; }
+      po=ok; pm=ms; }
+    if(cur){ cur.end=t1; cur.edgeEnd=true; waterWins.push(cur); }
+  }
+  const crossLbl=(ms)=>{ const x=X(ms); return `<circle cx="${x.toFixed(1)}" cy="${yThr.toFixed(1)}" r="3" fill="${m.color}"/>`
+    +`<text x="${x.toFixed(1)}" y="${(yThr+15).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${m.color}">${hmFr(ms)}</text>`; };
+  for(const wwin of waterWins){ if(!wwin.edgeStart) s+=crossLbl(wwin.start); if(!wwin.edgeEnd) s+=crossLbl(wwin.end); }
   for(let j=Math.max(0,idxBefore(t0));j<EX.length;j++){ const e=EX[j]; if(e.t<t0) continue; if(e.t>t1) break;
     const x=X(e.t), y=Y(e.h), hi=e.type==='high';
     s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="var(--surface)" stroke="var(--sea)" stroke-width="1.6"/>`;
@@ -1186,15 +1202,29 @@ function renderChart(){
   const xn=X(now);
   s+=`<line x1="${xn.toFixed(1)}" y1="${padT}" x2="${xn.toFixed(1)}" y2="${H-padB}" stroke="var(--sea-deep)" stroke-width="1.4"/>`;
   s+=`<circle cx="${xn.toFixed(1)}" cy="${Y(tideAt(now).h).toFixed(1)}" r="3.5" fill="var(--sea-deep)"/>`;
+  // curseur déplaçable (masqué au repos)
+  s+=`<line id="scrubLine" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="var(--coral)" stroke-width="1.2" stroke-dasharray="3 2" opacity="0"/>`;
+  s+=`<circle id="scrubDot" cx="0" cy="0" r="4.6" fill="var(--coral)" stroke="var(--surface)" stroke-width="2" opacity="0"/>`;
   svg.innerHTML=s;
-  attachHover(svg,X,t0,t1);
+  attachHover(svg,X,Y,t0,t1,thr,m.color);
 }
-function attachHover(svg,X,t0,t1){
+function attachHover(svg,X,Y,t0,t1,thr,mcolor){
   const ro=document.getElementById('readout');
-  function move(ev){ const r=svg.getBoundingClientRect(); const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
-    const frac=Math.max(0,Math.min(1,px/r.width)); const ms=t0+(t1-t0)*frac; const t=tideAt(ms);
-    ro.style.opacity=1; ro.innerHTML=`${hmFr(ms)} · <b>${mM(t.h)}</b>`; }
-  svg.onpointermove=move; svg.onpointerdown=move; svg.onpointerleave=()=>ro.style.opacity=0;
+  const line=svg.querySelector('#scrubLine'), dot=svg.querySelector('#scrubDot');
+  function move(ev){
+    const r=svg.getBoundingClientRect(); const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+    const frac=Math.max(0,Math.min(1,px/r.width)); const ms=t0+(t1-t0)*frac; const h=tideAt(ms).h;
+    const vx=X(ms), vy=Y(h);
+    if(line){ line.setAttribute('x1',vx.toFixed(1)); line.setAttribute('x2',vx.toFixed(1)); line.setAttribute('opacity','1'); }
+    if(dot){ dot.setAttribute('cx',vx.toFixed(1)); dot.setAttribute('cy',vy.toFixed(1)); dot.setAttribute('opacity','1'); }
+    const ok=h>=thr;
+    ro.style.opacity=1;
+    ro.innerHTML=`${hmFr(ms)} · <b>${mM(h)}</b>${ok?` · <span style="color:${mcolor};font-weight:700">assez d'eau</span>`:''}`;
+    const roW=ro.offsetWidth||96; let left=frac*r.width-roW/2; left=Math.max(2,Math.min(r.width-roW-2,left));
+    ro.style.left=left+'px';
+  }
+  function end(){ ro.style.opacity=0; if(line) line.setAttribute('opacity','0'); if(dot) dot.setAttribute('opacity','0'); }
+  svg.onpointermove=move; svg.onpointerdown=move; svg.onpointerleave=end;
 }
 
 // ---------- render: 10 jours (suit l'activité choisie) ----------
