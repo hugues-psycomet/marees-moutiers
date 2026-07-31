@@ -167,6 +167,11 @@ svg.chart{width:100%; height:auto; display:block; touch-action:pan-y}
 .dcard .dtop{display:flex; align-items:center; justify-content:space-between; gap:0.6rem}
 .dcard .dname{font-weight:800; font-size:0.95rem}
 .dcard .webadge{font-size:0.68rem; font-weight:700; color:var(--baignade); background:var(--baignade-soft); border-radius:999px; padding:0.1rem 0.45rem; margin-left:0.45rem; white-space:nowrap; vertical-align:middle}
+.dcard .dstar{font-size:0.68rem; font-weight:800; color:#8a5a06; background:#fdecc8; border-radius:999px; padding:0.1rem 0.45rem; margin-left:0.4rem; white-space:nowrap; vertical-align:middle}
+:root[data-theme="dark"] .dcard .dstar{color:#e5ad57; background:#33280f}
+.dslot.prime{border-left:4px solid #f2b705; background:var(--surface-2); border-radius:0 8px 8px 0}
+.dslot.prime .dvibe{color:var(--ink); font-weight:650}
+.tdlegend{font-size:0.78rem; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:0.5rem 0.7rem; margin-bottom:0.7rem}
 .dcard .cbadge{display:inline-flex; align-items:baseline; gap:0.35rem; font-weight:700; padding:0.28rem 0.65rem; border-radius:999px; font-size:0.78rem; border:1px solid transparent}
 .dcard .cbadge b{font-size:1.05rem; font-variant-numeric:tabular-nums}
 .dcard .cbar{height:6px; border-radius:4px; background:var(--surface-2); margin:0.55rem 0 0.65rem; overflow:hidden}
@@ -388,6 +393,12 @@ nav.tabbar .t[aria-selected="true"]{color:var(--sea)}
         <div class="hint">Sert à calculer l'heure de départ pour arriver pile quand il y a assez d'eau.</div>
       </div>
 
+      <div class="field">
+        <div class="row"><label for="rig">⛵ Temps de gréer (voile &amp; planche)</label><span class="val"><span id="vRig">30</span> min</span></div>
+        <input type="range" id="rig" min="0" max="60" step="5" value="30" aria-label="Temps de gréage en minutes">
+        <div class="hint">Ajouté au trajet <b>uniquement pour la voile et la planche</b> : le temps de gréer le bateau ou la planche avant d'être à l'eau.</div>
+      </div>
+
       <div class="field baignade">
         <div class="row"><label for="baignadeH">Baignade · hauteur d'eau minimale</label><span class="val"><span id="vBaignadeH">3,2</span> m</span></div>
         <input type="range" id="baignadeH" min="1" max="5.5" step="0.1" value="3.2" aria-label="Baignade, hauteur d'eau minimale en mètres">
@@ -569,7 +580,7 @@ function svgTag(path,extra){ return '<svg class="ic" viewBox="0 0 24 24" fill="n
 function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEach(el=>{ const p=ICON[el.dataset.icon]; if(p) el.innerHTML=svgTag(p); }); }
 
 // ---------- config + persistence ----------
-const DEF = { travelMin:10, baignade:{hmin:3.2}, voile:{hmin:4.1, wmin:8, wmax:28}, planche:{hmin:3.4, wmin:15, wmax:45} };
+const DEF = { travelMin:10, rigMin:30, baignade:{hmin:3.2}, voile:{hmin:4.1, wmin:8, wmax:28}, planche:{hmin:3.4, wmin:15, wmax:45} };
 const META = {
   baignade:{label:'Baignade', short:'Baignade', icon:'swim', color:'var(--baignade)', wind:false, gearNow:'À l\'eau !', name:'la baignade'},
   voile:{label:'Voile — dériveur · Laser · 420', short:'Voile', icon:'sail', color:'var(--voile)', wind:true, gearNow:'Cap sur l\'eau !', name:'la voile'},
@@ -582,6 +593,7 @@ function saveCfg(){ try{ localStorage.setItem(LS, JSON.stringify(cfg)); }catch(e
 function loadCfg(){ try{ const s=localStorage.getItem(LS); if(!s) return; const o=JSON.parse(s);
   cfg=JSON.parse(JSON.stringify(DEF));
   if(typeof o.travelMin==='number') cfg.travelMin=o.travelMin;
+  if(typeof o.rigMin==='number') cfg.rigMin=o.rigMin;
   ['baignade','voile','planche'].forEach(a=>{ if(o[a]) cfg[a]=Object.assign({},DEF[a],o[a]); });
  }catch(e){} }
 let currentAct = 'baignade';
@@ -747,9 +759,10 @@ function windows(act, from, to, stepMin=10){
   const out=[]; let cur=null, prevReason=null;
   for(let ms=from; ms<=to; ms+=step){
     const e=evalAct(act, ms);
-    if(e.ok){ if(!cur) cur={start:ms,hmax:e.h,wmin:1e9,wmax:-1e9,precipMax:0,windKnown:true,startRising:e.rising,startReason:prevReason};
+    if(e.ok){ if(!cur) cur={start:ms,hmax:e.h,wmin:1e9,wmax:-1e9,precipMax:0,windKnown:true,startRising:e.rising,startReason:prevReason,_wsPeak:-1,wdPeak:null};
       cur.hmax=Math.max(cur.hmax,e.h); cur.end=ms;
-      if(e.wind){cur.wmin=Math.min(cur.wmin,e.wind.ws); cur.wmax=Math.max(cur.wmax,e.wind.ws);}
+      if(e.wind){cur.wmin=Math.min(cur.wmin,e.wind.ws); cur.wmax=Math.max(cur.wmax,e.wind.ws);
+        if(e.wind.ws>cur._wsPeak){ cur._wsPeak=e.wind.ws; cur.wdPeak=e.wind.wd; }}
       const wp=windAt(ms); if(wp&&Number.isFinite(wp.precip)) cur.precipMax=Math.max(cur.precipMax, wp.precip);
       if(META[act].wind && !e.windKnown) cur.windKnown=false;
     } else { if(cur){ cur.endReason=e.reason; out.push(cur); cur=null; } prevReason=e.reason; } }
@@ -928,7 +941,8 @@ function renderDeparture(){
   const body=document.getElementById('departBody'); if(!body) return;
   card.style.setProperty('--ac', m.color); card.classList.remove('none');
   const head=`<div class="dhead">${svgTag(ICON[m.icon])} ${m.short}</div>`;
-  const fine=`<div class="dfine">Trajet ${cfg.travelMin}${NB}min (<span class="reglink" role="button" tabindex="0">réglable</span>) · horaires à ±15–20 min près · au moins 20 min d'eau à l'arrivée</div>`;
+  const rigTxt = m.wind ? ` + ${cfg.rigMin}${NB}min de gréage` : '';
+  const fine=`<div class="dfine">Trajet ${cfg.travelMin}${NB}min${rigTxt} (<span class="reglink" role="button" tabindex="0">réglable</span>) · horaires à ±15–20 min près · au moins 20 min d'eau à l'arrivée</div>`;
   if(!inRange(now)){ card.classList.add('none');
     body.innerHTML=head+`<div class="verdict no">Version à mettre à jour</div>`
       +`<div class="big"><span class="time">—</span></div>`
@@ -936,6 +950,7 @@ function renderDeparture(){
     return;
   }
   const travel=cfg.travelMin*60000;
+  const lead=travel + (m.wind ? cfg.rigMin*60000 : 0); // trajet (+ gréage pour voile/planche)
   const wins=windows(act, now-6*3600e3, now+10*864e5);
   const ongoing=wins.find(w=>w.start<=now && w.end>now);
   const upcoming=wins.find(w=>w.start>now);
@@ -943,7 +958,7 @@ function renderDeparture(){
   let html;
   if(ongoing){
     const remain=ongoing.end-now;
-    const lastLeave=ongoing.end-travel-MIN_USE; const canStill=lastLeave>now+60000;
+    const lastLeave=ongoing.end-lead-MIN_USE; const canStill=lastLeave>now+60000;
     html=head
       +`<div class="verdict ok">✓ ${m.gearNow}</div>`
       +`<div class="dbiglbl">Encore à l'eau</div>`
@@ -951,7 +966,7 @@ function renderDeparture(){
       +`<div class="dline">Il y a assez d'eau — ${endCause(ongoing)}.${canStill?` Vous pouvez encore partir de chez vous jusqu'à <b>${hmFr(round5(lastLeave))}</b>.`:' Trop juste pour partir de chez vous — c\'est pour ceux qui sont déjà sur place.'}</div>`
       +stats(ongoing,m)+rainNote(ongoing)+nextLine(fut[0])+fine;
   } else if(upcoming){
-    const dep=round5(upcoming.start-travel);
+    const dep=round5(upcoming.start-lead);
     const sameDay=dayKey(dep)===dayKey(now);
     const wait=dep-now;
     const when = dep<=now ? 'partez maintenant' : (sameDay ? rel(dep-now) : cap(fmtDayShort.format(new Date(dep))));
@@ -960,11 +975,12 @@ function renderDeparture(){
     else if(wait < 3600e3) vlabel='Bientôt — préparez les affaires';
     else if(sameDay) vlabel='Plus tard aujourd\'hui';
     else { vcls='no'; vlabel='Pas aujourd\'hui'; biglbl='Prochain départ'; }
+    const arrivePhrase = m.wind ? 'pour arriver, gréer et être à l\'eau ' : 'pour arriver ';
     html=head
       +`<div class="verdict ${vcls}">${vlabel}</div>`
       +`<div class="dbiglbl">${biglbl}</div>`
       +`<div class="big"><span class="time">${dep<=now?'Maintenant':hmFr(dep)}</span><span class="cd">${when}</span></div>`
-      +`<div class="dline">${dep<=now?'Partez':'Partez de chez vous'} pour arriver ${startCause(upcoming)}.</div>`
+      +`<div class="dline">${dep<=now?'Partez':'Partez de chez vous'} ${arrivePhrase}${startCause(upcoming)}.</div>`
       +stats(upcoming,m)+rainNote(upcoming)+nextLine(fut[1])+fine;
   } else {
     card.classList.add('none');
@@ -1042,6 +1058,17 @@ function slotVibe(w, act){
   return {i:'☀️', t: (he>18.5) ? (swim?'Grande journée : de la mer du matin au soir' : 'Large fenêtre, du matin au soir')
                                : (swim?'Belle demi-journée à la plage' : 'Belle demi-journée sur l\'eau')};
 }
+// ⭐ créneau au top pour naviguer : vent bien soutenu + bien orienté + session assez longue
+function sessionStar(w, act){
+  const m=META[act]; if(!m.wind) return false;
+  if(!w.windKnown || w.wmax<=-1e9) return false;
+  if((w.end-w.start) < 90*60e3) return false;
+  const c=cfg[act], band=(c.wmax-c.wmin)||1, wmid=(w.wmin+w.wmax)/2;
+  if(wmid < c.wmin + 0.35*band) return false;   // pas trop mou
+  if(wmid > c.wmax - 0.05*band) return false;   // ni au taquet
+  if(w.wdPeak!=null && w.wdPeak>=40 && w.wdPeak<=150) return false; // évite le vent de terre (offshore)
+  return true;
+}
 function renderTenDays(){
   const now=Date.now(); const box=document.getElementById('tendays'); if(!box) return;
   const act=currentAct, m=META[act];
@@ -1053,7 +1080,8 @@ function renderTenDays(){
   for(let j=Math.max(0,idxBefore(now)-5); j<EX.length; j++){ const e=EX[j]; if(e.t>now+11*864e5) break; const k=dayKey(e.t); if(k in byday) byday[k].push(e); }
   const wins=windows(act, now-6*3600e3, now+11*864e5);
   const travel=cfg.travelMin*60000;
-  let html='';
+  const lead=travel + (m.wind ? cfg.rigMin*60000 : 0);
+  let html = m.wind ? `<div class="tdlegend">⭐ = conditions au top pour ${m.short.toLowerCase()} : vent bien orienté et soutenu, avec assez d'eau.</div>` : '';
   for(const k of days){
     const evs=byday[k]; if(!evs.length) continue;
     const highs=evs.filter(e=>e.type==='high'), lows=evs.filter(e=>e.type==='low');
@@ -1064,19 +1092,22 @@ function renderTenDays(){
     const weBadge=(wd==='Sat'||wd==='Sun')?'<span class="webadge">🏖️ week-end</span>':'';
     const fmtEv=e=>`${hmFr(e.t)} <span style="color:var(--muted)">${mM(e.h)}</span>`;
     const todayW=wins.filter(w=>dayKey(w.start)===k && w.end>now);
+    const dayStar = m.wind && todayW.some(w=>sessionStar(w,act));
+    const starBadge = dayStar ? '<span class="dstar">⭐ session</span>' : '';
     let slots;
     if(todayW.length){
       slots='<div class="dslots">'+todayW.map(w=>{
-        let extra=`départ ${hmFr(round5(w.start-travel))}`;
+        let extra=`départ ${hmFr(round5(w.start-lead))}`;
         if(m.wind){ extra += w.windKnown && w.wmax>-1e9 ? ` · ${kn(w.wmin)}–${kn(w.wmax)} nds` : ` · vent ?`; }
-        const v=slotVibe(w, act);
-        return `<div class="dslot"><div class="dtop2"><span class="dtime">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="dmeta">${extra}</span></div><div class="dvibe"><span class="em">${v.i}</span> ${v.t}</div></div>`;
+        const star=sessionStar(w,act);
+        const v = star ? {i:'⭐', t:'Conditions au top pour naviguer'} : slotVibe(w, act);
+        return `<div class="dslot${star?' prime':''}"><div class="dtop2"><span class="dtime">${hmFr(w.start)}–${hmFr(w.end)}</span><span class="dmeta">${extra}</span></div><div class="dvibe"><span class="em">${v.i}</span> ${v.t}</div></div>`;
       }).join('')+'</div>';
     } else {
       slots=`<div class="dnone">${svgTag(ICON[m.icon])} Pas de créneau ${m.short.toLowerCase()} ce jour</div>`;
     }
     html+=`<div class="dcard" style="--ac:${m.color}">
-      <div class="dtop"><span class="dname">${dname}${weBadge}</span>
+      <div class="dtop"><span class="dname">${dname}${weBadge}${starBadge}</span>
         <span class="cbadge" style="color:${cc.fg};background:${cc.bg}">coef <b>${cmax??'–'}</b> · ${lab}</span></div>
       <div class="cbar"><i style="width:${barW}%;background:${barColor(cmax)}"></i></div>
       <div class="dtides">
@@ -1211,6 +1242,7 @@ const WINDF=new Set(['voileWmin','voileWmax','plancheWmin','plancheWmax']); // a
 function syncSliders(){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; const l=document.getElementById('v'+id.charAt(0).toUpperCase()+id.slice(1)); if(l) l.textContent = WINDF.has(id)? kn(v) : (Number.isInteger(v)?v:String(v).replace('.',',')); };
   set('travel',cfg.travelMin);
+  set('rig',cfg.rigMin);
   set('baignadeH',cfg.baignade.hmin);
   set('voileH',cfg.voile.hmin); set('voileWmin',cfg.voile.wmin); set('voileWmax',cfg.voile.wmax);
   set('plancheH',cfg.planche.hmin); set('plancheWmin',cfg.planche.wmin); set('plancheWmax',cfg.planche.wmax);
@@ -1251,6 +1283,7 @@ function init(){
     document.getElementById('manifest').href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/json'})); }catch(e){}
 
   bind('travel','travelMin');
+  bind('rig','rigMin');
   bind('baignadeH','baignade','hmin');
   bind('voileH','voile','hmin'); bind('voileWmin','voile','wmin'); bind('voileWmax','voile','wmax');
   bind('plancheH','planche','hmin'); bind('plancheWmin','planche','wmin'); bind('plancheWmax','planche','wmax');
