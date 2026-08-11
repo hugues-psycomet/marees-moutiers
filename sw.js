@@ -1,7 +1,7 @@
 // Service worker — « À l'eau, les Moutiers ! »
 // Objectif : lancement offline depuis le raccourci + installabilité Android, SANS piéger sur une vieille version.
 // Stratégie : réseau d'abord pour le HTML (jamais périmé), cache d'abord pour les assets, version.json et /hit toujours au réseau.
-const V = '2026.08.06-1817';
+const V = '2026.08.11-1257';
 const CACHE = 'moutiers-' + V;
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon-512-maskable.png'];
 
